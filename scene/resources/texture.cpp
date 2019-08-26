@@ -1839,6 +1839,13 @@ void GradientTexture::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "fill_to"), "set_fill_to", "get_fill_to");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "fill_method", PROPERTY_HINT_ENUM, "Fill Linear,Fill Radial"), "set_fill_method", "get_fill_method");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "repeat_method", PROPERTY_HINT_ENUM, "No Repeat,Repeat,Repeat Mirror"), "set_repeat_method", "get_repeat_method");
+
+	BIND_ENUM_CONSTANT(FILL_LINEAR);
+	BIND_ENUM_CONSTANT(FILL_RADIAL);
+
+	BIND_ENUM_CONSTANT(NO_REPEAT);
+	BIND_ENUM_CONSTANT(REPEAT);
+	BIND_ENUM_CONSTANT(REPEAT_MIRROR);
 }
 
 void GradientTexture::set_gradient(Ref<Gradient> p_gradient) {
