@@ -423,6 +423,7 @@ void SpatialMaterial::_update_shader() {
 		case BLEND_MODE_ADD: code += "blend_add"; break;
 		case BLEND_MODE_SUB: code += "blend_sub"; break;
 		case BLEND_MODE_MUL: code += "blend_mul"; break;
+		case BLEND_MODE_PMALPHA: code += "blend_premul_alpha"; break;
 	}
 
 	DepthDrawMode ddm = depth_draw_mode;
