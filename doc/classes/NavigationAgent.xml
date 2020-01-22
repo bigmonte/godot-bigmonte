@@ -114,7 +114,7 @@
 		<member name="radius" type="float" setter="set_radius" getter="get_radius" default="1.0">
 			The radius of the agent.
 		</member>
-		<member name="player_center_height" type="float" setter="set_player_center_height" getter="get_player_center_height" default="0.0">
+		<member name="agent_height_offset" type="float" setter="set_agent_height_offset" getter="get_agent_height_offset" default="0.0">
 			The agent height offset to match the navigation mesh height.
 		</member>
 		<member name="neighbor_dist" type="float" setter="set_neighbor_dist" getter="get_neighbor_dist" default="50.0">
