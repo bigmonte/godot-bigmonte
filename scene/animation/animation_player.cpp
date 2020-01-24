@@ -826,7 +826,7 @@ void AnimationPlayer::_animation_process2(float p_delta, bool p_started) {
 	accum_pass++;
 
 	float blend = 1.0; // First animation we play at 100% blend
-	
+
 	if (p_delta != 0) {
 		c.seeked = false;
 	}
@@ -1206,6 +1206,8 @@ void AnimationPlayer::play(const StringName &p_name, float p_custom_blend, float
 			b.data = c.current;
 			b.blend_time = b.blend_left = blend_time;
 			c.blend.push_back(b);
+		} else {
+			c.blend.clear();
 		}
 	}
 
