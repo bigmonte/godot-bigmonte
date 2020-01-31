@@ -4,7 +4,7 @@
 		2D Obstacle used in navigation for collision avoidance.
 	</brief_description>
 	<description>
-		2D Obstacle used in navigation for collision avoidance. The obstacle needs navigation data to work correctly. This can be done by having the agent as a child of a [Navigation2D] node, or using [method set_navigation].
+		2D Obstacle used in navigation for collision avoidance. The obstacle needs navigation data to work correctly. This can be done by having the obstacle as a child of a [Navigation2D] node, or using [method set_navigation].
 	</description>
 	<tutorials>
 	</tutorials>
@@ -13,7 +13,7 @@
 			<return type="Node">
 			</return>
 			<description>
-				Returns the [Navigation2D] node that the agent is using for its navigation system.
+				Returns the [Navigation2D] node that the obstacle is using for its navigation system.
 			</description>
 		</method>
 		<method name="set_navigation">
@@ -22,7 +22,7 @@
             <argument index="0" name="navigation" type="Node">
             </argument>
 			<description>
-				Sets the [Navigation2D] node used by the agent. Useful when you don't want to make the agent a child of a [Navigation2D] node.
+				Sets the [Navigation2D] node used by the obstacle. Useful when you don't want to make the obstacle a child of a [Navigation2D] node.
 			</description>
 		</method>
     </methods>
