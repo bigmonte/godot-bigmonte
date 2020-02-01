@@ -48,7 +48,7 @@
 			<return type="Vector2">
 			</return>
 			<description>
-				Returns a [Vector2] in global coordinates, that can be moved to, making sure that there are no static objects in the way.
+				Returns a [Vector2] in global coordinates, that can be moved to, making sure that there are no static objects in the way. If the agent does not have a navigation path, it will return the position of the agent's parent.
 			</description>
 		</method>
 		<method name="get_target_location" qualifiers="const">
