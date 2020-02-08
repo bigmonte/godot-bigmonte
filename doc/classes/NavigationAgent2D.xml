@@ -4,7 +4,7 @@
 		2D Agent used in navigation for collision avoidance.
 	</brief_description>
 	<description>
-		2D Agent that is used in navigation to reach a location while avoiding static and dynamic obstacles. The dynamic obstacles are avoided using RVO collision avoidance. The agent needs navigation data to work correctly. This can be done by having the agent as a child of a [Navigation2D] node, or using [method set_navigation].
+		2D Agent that is used in navigation to reach a location while avoiding static and dynamic obstacles. The dynamic obstacles are avoided using RVO collision avoidance. The agent needs navigation data to work correctly. This can be done by having the agent as a child of a [Navigation2D] node, or using [method set_navigation]. [NavigationAgent2D] is physics safe.
 	</description>
 	<tutorials>
 	</tutorials>
