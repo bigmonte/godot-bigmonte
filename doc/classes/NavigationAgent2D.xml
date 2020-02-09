@@ -11,7 +11,7 @@
 	<methods>
 		<method name="distance_to_target" qualifiers="const">
 			<return type="float">
-            </return>
+			</return>
 			<description>
 				Returns the distance to the target location, using the agent's global position. The user must set the target location with [method set_target_location] in order for this to be accurate.
 			</description>
@@ -82,8 +82,8 @@
 		<method name="set_navigation">
 			<return type="void">
 			</return>
-            <argument index="0" name="navigation" type="Node">
-            </argument>
+			<argument index="0" name="navigation" type="Node">
+			</argument>
 			<description>
 				Sets the [Navigation2D] node used by the agent. Useful when you don't want to make the agent a child of a [Navigation2D] node.
 			</description>
@@ -91,8 +91,8 @@
 		<method name="set_target_location">
 			<return type="void">
 			</return>
-            <argument index="0" name="location" type="Vector2">
-            </argument>
+			<argument index="0" name="location" type="Vector2">
+			</argument>
 			<description>
 				Sets the user desired final location. This will clear the current navigation path.
 			</description>
@@ -106,7 +106,7 @@
 				Sends the passed in velocity to the collision avoidance algorithm. It will adjust the velocity to avoid collisions. Once the adjustment to the velocity is complete, it will emit the [signal velocity_computed] signal.
 			</description>
 		</method>
-    </methods>
+	</methods>
 	<members>
 		<member name="target_desired_distance" type="float" setter="set_target_desired_distance" getter="get_target_desired_distance" default="1.0">
 			The distance threshold before a target is considered to be reached. This will allow an agent to not have to hit a point on the path exactly, but in the area.
@@ -147,8 +147,8 @@
 			</description>
 		</signal>
 		<signal name="velocity_computed">
-            <argument index="0" name="safe_velocity" type="Vector2">
-            </argument>
+			<argument index="0" name="safe_velocity" type="Vector2">
+			</argument>
 			<description>
 				Notifies when the collision avoidance velocity is calculated. Emitted by [method set_velocity].
 			</description>
