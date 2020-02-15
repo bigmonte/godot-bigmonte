@@ -30,6 +30,11 @@
 
 #include "main_timer_sync.h"
 
+#ifdef DEBUG_ENABLED
+// enable to get extra diagnostics from here
+// #define SYNC_TIMER_DEBUG_ENABLED
+#endif
+
 void MainFrameTime::clamp_idle(float min_idle_step, float max_idle_step) {
 	if (idle_step < min_idle_step) {
 		idle_step = min_idle_step;
@@ -57,7 +62,7 @@ int MainTimerSync::get_average_physics_steps(float &p_min, float &p_max) {
 		const float typical_lower = typical_physics_steps[i];
 		const float current_min = typical_lower / (i + 1);
 		if (current_min > p_max)
-			return i; // bail out of further restrictions would void the interval
+			return i; // bail out if further restrictions would void the interval
 		else if (current_min > p_min)
 			p_min = current_min;
 		const float current_max = (typical_lower + 1) / (i + 1);
@@ -101,6 +106,15 @@ MainFrameTime MainTimerSync::advance_core(float p_frame_slice, int p_iterations_
 			max_typical_steps = steps_left_to_match_typical + 1;
 	}
 
+#ifdef DEBUG_ENABLED
+	if (max_typical_steps < 0) {
+		WARN_PRINT_ONCE("max_typical_steps is negative");
+	}
+	if (min_typical_steps < 0) {
+		WARN_PRINT_ONCE("min_typical_steps is negative");
+	}
+#endif
+
 	// try to keep it consistent with previous iterations
 	if (ret.physics_steps < min_typical_steps) {
 		const int max_possible_steps = floor((time_accum)*p_iterations_per_second + get_physics_jitter_fix());
@@ -118,6 +132,15 @@ MainFrameTime MainTimerSync::advance_core(float p_frame_slice, int p_iterations_
 		} else {
 			ret.physics_steps = max_typical_steps;
 		}
+	}
+
+	if (ret.physics_steps < 0) {
+#ifdef SYNC_TIMER_DEBUG_ENABLED
+		// negative steps can only happen if either the real clock runs backwards (caught there)
+		// or the jitter_fix setting gets changed on the fly.
+		WARN_PRINT_ONCE("negative physics step calculated");
+#endif
+		ret.physics_steps = 0;
 	}
 
 	time_accum -= ret.physics_steps * p_frame_slice;
@@ -143,6 +166,10 @@ MainFrameTime MainTimerSync::advance_core(float p_frame_slice, int p_iterations_
 
 // calls advance_core, keeps track of deficit it adds to animaption_step, make sure the deficit sum stays close to zero
 MainFrameTime MainTimerSync::advance_checked(float p_frame_slice, int p_iterations_per_second, float p_idle_step) {
+	if (p_idle_step <= 0) {
+		WARN_PRINT_ONCE("p_idle_step not positive");
+	}
+
 	if (fixed_fps != -1)
 		p_idle_step = 1.0 / fixed_fps;
 
@@ -172,8 +199,42 @@ MainFrameTime MainTimerSync::advance_checked(float p_frame_slice, int p_iteratio
 	// last clamping: make sure time_accum is between 0 and p_frame_slice for consistency between physics and idle
 	ret.clamp_idle(idle_minus_accum, idle_minus_accum + p_frame_slice);
 
+	// all the operations above may have turned ret.idle_step negative, clamp to zero
+	if (ret.idle_step < 0) {
+#ifdef SYNC_TIMER_DEBUG_ENABLED
+		WARN_PRINT_ONCE("negative animation timestep calculated");
+#endif
+		ret.idle_step = 0;
+	}
+
 	// restore time_accum
 	time_accum = ret.idle_step - idle_minus_accum;
+
+	// forcing ret.idle_step to be positive may trigger a violation of the
+	// promise that time_accum is between 0 and p_frame_slice
+#ifdef DEBUG_ENABLED
+	if (time_accum < -1E-7) {
+		WARN_PRINT_ONCE("time_accum negative");
+	}
+#endif
+
+	if (time_accum > p_frame_slice) {
+#ifdef SYNC_TIMER_DEBUG_ENABLED
+		WARN_PRINT_ONCE("extra physics steps required to avoid negative timesteps");
+#endif
+		const int extra_physics_steps = floor(time_accum * p_iterations_per_second);
+		time_accum -= extra_physics_steps * p_frame_slice;
+		ret.physics_steps += extra_physics_steps;
+	}
+
+#ifdef DEBUG_ENABLED
+	if (time_accum < -1E-7) {
+		WARN_PRINT_ONCE("time_accum negative");
+	}
+	if (time_accum > p_frame_slice + 1E-7) {
+		WARN_PRINT_ONCE("time_accum larger than p_frame_slice");
+	}
+#endif
 
 	// track deficit
 	time_deficit = p_idle_step - ret.idle_step;
