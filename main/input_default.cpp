@@ -135,6 +135,13 @@ float InputDefault::get_action_strength(const StringName &p_action) const {
 	return E->get().strength;
 }
 
+float InputDefault::get_action_duration(const StringName &p_action) const {
+	const Map<StringName, Action>::Element *E = action_state.find(p_action);
+	if (!E)
+		return 0;
+	return (OS::get_singleton()->get_ticks_usec() - E->get().timestamp) / 1000000.0;
+}
+
 float InputDefault::get_joy_axis(int p_device, int p_axis) const {
 
 	_THREAD_SAFE_METHOD_
@@ -430,6 +437,7 @@ void InputDefault::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool 
 				Action action;
 				action.physics_frame = Engine::get_singleton()->get_physics_frames();
 				action.idle_frame = Engine::get_singleton()->get_idle_frames();
+				action.timestamp = OS::get_singleton()->get_ticks_usec();
 				action.pressed = p_event->is_action_pressed(E->key());
 				action.strength = 0.f;
 				action_state[E->key()] = action;
