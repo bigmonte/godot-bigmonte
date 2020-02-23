@@ -79,7 +79,10 @@ public:
 
 	_FORCE_INLINE_ T get(int p_index) { return _cowdata.get(p_index); }
 	_FORCE_INLINE_ const T get(int p_index) const { return _cowdata.get(p_index); }
-	_FORCE_INLINE_ void set(int p_index, const T &p_elem) { _cowdata.set(p_index, p_elem); }
+	_FORCE_INLINE_ void set(int p_index, const T &p_elem) {
+		ERR_FAIL_INDEX(p_index, size());
+		_cowdata.set(p_index, p_elem);
+	}
 	_FORCE_INLINE_ int size() const { return _cowdata.size(); }
 	Error resize(int p_size) { return _cowdata.resize(p_size); }
 	_FORCE_INLINE_ const T &operator[](int p_index) const { return _cowdata.get(p_index); }
