@@ -465,6 +465,7 @@ private:
 	void _draw_margin_at_position(int p_value, Point2 p_position, Margin p_side);
 	void _draw_percentage_at_position(float p_value, Point2 p_position, Margin p_side);
 	void _draw_straight_line(Point2 p_from, Point2 p_to, Color p_color);
+	void _draw_text_with_backdrop(Ref<Font> p_font, Point2 p_position, String p_string, Color p_font_color, Color p_backdrop_color);
 
 	void _draw_smart_snapping();
 	void _draw_rulers();

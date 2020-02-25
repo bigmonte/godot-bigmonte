@@ -2798,6 +2798,7 @@ void CanvasItemEditor::_draw_ruler_tool() {
 		Color ruler_primary_color = get_color("accent_color", "Editor");
 		Color ruler_secondary_color = ruler_primary_color;
 		ruler_secondary_color.a = 0.5;
+		Color backdrop_color = Color(0, 0, 0, 0.7);
 
 		Point2 begin = (ruler_tool_origin - view_offset) * zoom;
 		Point2 end = snap_point(viewport->get_local_mouse_position() / zoom + view_offset) * zoom - view_offset * zoom;
@@ -2823,7 +2824,7 @@ void CanvasItemEditor::_draw_ruler_tool() {
 		Point2 text_pos = (begin + end) / 2 - Vector2(text_width / 2, text_height / 2);
 		text_pos.x = CLAMP(text_pos.x, text_width / 2, viewport->get_rect().size.x - text_width * 1.5);
 		text_pos.y = CLAMP(text_pos.y, text_height * 1.5, viewport->get_rect().size.y - text_height * 1.5);
-		viewport->draw_string(font, text_pos, vformat("%.2f px", length_vector.length()), font_color);
+		_draw_text_with_backdrop(font, text_pos, vformat("%.2f px", length_vector.length()), font_color, backdrop_color);
 
 		if (draw_secondary_lines) {
 			const float horizontal_angle_rad = atan2(length_vector.y, length_vector.x);
@@ -2833,16 +2834,16 @@ void CanvasItemEditor::_draw_ruler_tool() {
 
 			Point2 text_pos2 = text_pos;
 			text_pos2.x = begin.x < text_pos.x ? MIN(text_pos.x - text_width, begin.x - text_width / 2) : MAX(text_pos.x + text_width, begin.x - text_width / 2);
-			viewport->draw_string(font, text_pos2, vformat("%.2f px", length_vector.y), font_secondary_color);
+			_draw_text_with_backdrop(font, text_pos2, vformat("%.2f px", length_vector.y), font_secondary_color, backdrop_color);
 
 			Point2 v_angle_text_pos = Point2();
 			v_angle_text_pos.x = CLAMP(begin.x - angle_text_width / 2, angle_text_width / 2, viewport->get_rect().size.x - angle_text_width);
 			v_angle_text_pos.y = begin.y < end.y ? MIN(text_pos2.y - 2 * text_height, begin.y - text_height * 0.5) : MAX(text_pos2.y + text_height * 3, begin.y + text_height * 1.5);
-			viewport->draw_string(font, v_angle_text_pos, vformat("%d deg", vertical_angle), font_secondary_color);
+			_draw_text_with_backdrop(font, v_angle_text_pos, vformat("%d deg", vertical_angle), font_secondary_color, backdrop_color);
 
 			text_pos2 = text_pos;
 			text_pos2.y = end.y < text_pos.y ? MIN(text_pos.y - text_height * 2, end.y - text_height / 2) : MAX(text_pos.y + text_height * 2, end.y - text_height / 2);
-			viewport->draw_string(font, text_pos2, vformat("%.2f px", length_vector.x), font_secondary_color);
+			_draw_text_with_backdrop(font, text_pos2, vformat("%.2f px", length_vector.x), font_secondary_color, backdrop_color);
 
 			Point2 h_angle_text_pos = Point2();
 			h_angle_text_pos.x = CLAMP(end.x - angle_text_width / 2, angle_text_width / 2, viewport->get_rect().size.x - angle_text_width);
@@ -2859,7 +2860,7 @@ void CanvasItemEditor::_draw_ruler_tool() {
 					h_angle_text_pos.y = MIN(text_pos.y - height_multiplier * text_height, MIN(end.y - text_height * 0.5, text_pos2.y - height_multiplier * text_height));
 				}
 			}
-			viewport->draw_string(font, h_angle_text_pos, vformat("%d deg", horizontal_angle), font_secondary_color);
+			_draw_text_with_backdrop(font, h_angle_text_pos, vformat("%d deg", horizontal_angle), font_secondary_color, backdrop_color);
 
 			// Angle arcs
 			int arc_point_count = 8;
@@ -2897,17 +2898,17 @@ void CanvasItemEditor::_draw_ruler_tool() {
 			text_pos.y = CLAMP(text_pos.y, text_height * 2.5, viewport->get_rect().size.y - text_height / 2);
 
 			if (draw_secondary_lines) {
-				viewport->draw_string(font, text_pos, vformat("%.2f units", (length_vector / grid_step).length()), font_color);
+				_draw_text_with_backdrop(font, text_pos, vformat("%.2f units", (length_vector / grid_step).length()), font_color, backdrop_color);
 
 				Point2 text_pos2 = text_pos;
 				text_pos2.x = begin.x < text_pos.x ? MIN(text_pos.x - text_width, begin.x - text_width / 2) : MAX(text_pos.x + text_width, begin.x - text_width / 2);
-				viewport->draw_string(font, text_pos2, vformat("%d units", roundf(length_vector.y / grid_step.y)), font_secondary_color);
+				_draw_text_with_backdrop(font, text_pos2, vformat("%d units", roundf(length_vector.y / grid_step.y)), font_secondary_color, backdrop_color);
 
 				text_pos2 = text_pos;
 				text_pos2.y = end.y < text_pos.y ? MIN(text_pos.y - text_height * 2, end.y + text_height / 2) : MAX(text_pos.y + text_height * 2, end.y + text_height / 2);
-				viewport->draw_string(font, text_pos2, vformat("%d units", roundf(length_vector.x / grid_step.x)), font_secondary_color);
+				_draw_text_with_backdrop(font, text_pos2, vformat("%d units", roundf(length_vector.x / grid_step.x)), font_secondary_color, backdrop_color);
 			} else {
-				viewport->draw_string(font, text_pos, vformat("%d units", roundf((length_vector / grid_step).length())), font_color);
+				_draw_text_with_backdrop(font, text_pos, vformat("%d units", roundf((length_vector / grid_step).length())), font_color, backdrop_color);
 			}
 		}
 	} else {
@@ -3340,6 +3341,12 @@ void CanvasItemEditor::_draw_straight_line(Point2 p_from, Point2 p_to, Color p_c
 	if (points.size() >= 2) {
 		VisualServer::get_singleton()->canvas_item_add_line(ci, points[0], points[1], p_color);
 	}
+}
+
+void CanvasItemEditor::_draw_text_with_backdrop(Ref<Font> p_font, Point2 p_position, String p_string, Color p_font_color, Color p_backdrop_color) {
+	Vector2 string_size = p_font->get_string_size(p_string);
+	viewport->draw_rect(Rect2(p_position - Vector2(0, string_size.y * 0.8), string_size).grow_individual(1, -1, 1, 1), p_backdrop_color);
+	viewport->draw_string(p_font, p_position, p_string, p_font_color);
 }
 
 void CanvasItemEditor::_draw_axis() {
