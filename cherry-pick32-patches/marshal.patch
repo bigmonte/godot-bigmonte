@@ -1,0 +1,52 @@
+From 9e8e5ebdc74f535df395eaf5d8031002edfe5a10 Mon Sep 17 00:00:00 2001
+From: "Mateo Dev .59" <mateomiccino@gmail.com>
+Date: Mon, 24 Feb 2020 09:56:22 -0300
+Subject: [PATCH] Core: Change _Marshall class inherit from Reference to Object
+
+---
+ core/bind/core_bind.h        | 4 ++--
+ doc/classes/@GlobalScope.xml | 2 +-
+ doc/classes/Marshalls.xml    | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/core/bind/core_bind.h b/core/bind/core_bind.h
+index 342c43802ef..ae569ea1894 100644
+--- a/core/bind/core_bind.h
++++ b/core/bind/core_bind.h
+@@ -581,9 +581,9 @@ class _Directory : public Reference {
+ 	bool _list_skip_hidden;
+ };
+ 
+-class _Marshalls : public Reference {
++class _Marshalls : public Object {
+ 
+-	GDCLASS(_Marshalls, Reference);
++	GDCLASS(_Marshalls, Object);
+ 
+ 	static _Marshalls *singleton;
+ 
+diff --git a/doc/classes/@GlobalScope.xml b/doc/classes/@GlobalScope.xml
+index cee3f31d292..0bf11200090 100644
+--- a/doc/classes/@GlobalScope.xml
++++ b/doc/classes/@GlobalScope.xml
+@@ -53,7 +53,7 @@
+ 			The [JavaScript] singleton.
+ 			[b]Note:[/b] Only implemented on HTML5.
+ 		</member>
+-		<member name="Marshalls" type="Reference" setter="" getter="">
++		<member name="Marshalls" type="Marshalls" setter="" getter="">
+ 			The [Marshalls] singleton.
+ 		</member>
+ 		<member name="Navigation2DServer" type="Navigation2DServer" setter="" getter="">
+diff --git a/doc/classes/Marshalls.xml b/doc/classes/Marshalls.xml
+index 6707068c5a6..4250ffd7005 100644
+--- a/doc/classes/Marshalls.xml
++++ b/doc/classes/Marshalls.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="UTF-8" ?>
+-<class name="Marshalls" inherits="Reference" version="4.0">
++<class name="Marshalls" inherits="Object" version="4.0">
+ 	<brief_description>
+ 		Data transformation (marshalling) and encoding helpers.
+ 	</brief_description>
+

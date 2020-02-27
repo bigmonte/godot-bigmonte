@@ -1,0 +1,88 @@
+From 8c80b602ac51c5bceec4f767692e694d9ce73450 Mon Sep 17 00:00:00 2001
+From: Yuri Sizov <yuris@humnom.net>
+Date: Mon, 10 Feb 2020 16:04:15 +0300
+Subject: [PATCH] Add a button to quickly repeat last search in files
+
+---
+ editor/find_in_files.cpp | 14 ++++++++++++++
+ editor/find_in_files.h   |  2 ++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/editor/find_in_files.cpp b/editor/find_in_files.cpp
+index b24a5c38f21..c448ef58939 100644
+--- a/editor/find_in_files.cpp
++++ b/editor/find_in_files.cpp
+@@ -533,6 +533,12 @@ FindInFilesPanel::FindInFilesPanel() {
+ 		_status_label = memnew(Label);
+ 		hbc->add_child(_status_label);
+ 
++		_refresh_button = memnew(Button);
++		_refresh_button->set_text(TTR("Refresh"));
++		_refresh_button->connect("pressed", this, "_on_refresh_button_clicked");
++		_refresh_button->hide();
++		hbc->add_child(_refresh_button);
++
+ 		_cancel_button = memnew(Button);
+ 		_cancel_button->set_text(TTR("Cancel"));
+ 		_cancel_button->connect("pressed", this, "_on_cancel_button_clicked");
+@@ -616,6 +622,7 @@ void FindInFilesPanel::start_search() {
+ 	_finder->start();
+ 
+ 	update_replace_buttons();
++	_refresh_button->hide();
+ 	_cancel_button->show();
+ }
+ 
+@@ -626,6 +633,7 @@ void FindInFilesPanel::stop_search() {
+ 	_status_label->set_text("");
+ 	update_replace_buttons();
+ 	set_progress_visible(false);
++	_refresh_button->show();
+ 	_cancel_button->hide();
+ }
+ 
+@@ -728,9 +736,14 @@ void FindInFilesPanel::_on_finished() {
+ 	_status_label->set_text(TTR("Search complete"));
+ 	update_replace_buttons();
+ 	set_progress_visible(false);
++	_refresh_button->show();
+ 	_cancel_button->hide();
+ }
+ 
++void FindInFilesPanel::_on_refresh_button_clicked() {
++	start_search();
++}
++
+ void FindInFilesPanel::_on_cancel_button_clicked() {
+ 	stop_search();
+ }
+@@ -905,6 +918,7 @@ void FindInFilesPanel::_bind_methods() {
+ 	ClassDB::bind_method("_on_result_found", &FindInFilesPanel::_on_result_found);
+ 	ClassDB::bind_method("_on_item_edited", &FindInFilesPanel::_on_item_edited);
+ 	ClassDB::bind_method("_on_finished", &FindInFilesPanel::_on_finished);
++	ClassDB::bind_method("_on_refresh_button_clicked", &FindInFilesPanel::_on_refresh_button_clicked);
+ 	ClassDB::bind_method("_on_cancel_button_clicked", &FindInFilesPanel::_on_cancel_button_clicked);
+ 	ClassDB::bind_method("_on_result_selected", &FindInFilesPanel::_on_result_selected);
+ 	ClassDB::bind_method("_on_replace_text_changed", &FindInFilesPanel::_on_replace_text_changed);
+diff --git a/editor/find_in_files.h b/editor/find_in_files.h
+index 327c3f1b5ad..e8a524aaf42 100644
+--- a/editor/find_in_files.h
++++ b/editor/find_in_files.h
+@@ -163,6 +163,7 @@ class FindInFilesPanel : public Control {
+ private:
+ 	void _on_result_found(String fpath, int line_number, int begin, int end, String text);
+ 	void _on_finished();
++	void _on_refresh_button_clicked();
+ 	void _on_cancel_button_clicked();
+ 	void _on_result_selected();
+ 	void _on_item_edited();
+@@ -190,6 +191,7 @@ class FindInFilesPanel : public Control {
+ 	Label *_search_text_label;
+ 	Tree *_results_display;
+ 	Label *_status_label;
++	Button *_refresh_button;
+ 	Button *_cancel_button;
+ 	ProgressBar *_progress_bar;
+ 	Map<String, TreeItem *> _file_items;
+
+

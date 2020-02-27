@@ -1,0 +1,40 @@
+From d8ba07ea8f2a17e77549c56ce8eddcbc2fcead7c Mon Sep 17 00:00:00 2001
+From: Fabio Alessandrelli <fabio.alessandrelli@gmail.com>
+Date: Tue, 25 Feb 2020 15:00:52 +0100
+Subject: [PATCH] Fix debugger crash inspecting freed object.
+
+This seems to be the correct way to validate a reference.
+Why is cast_to failing? Is this the correct way of checking if the
+object is valid?
+---
+ scene/debugger/scene_debugger.cpp | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/scene/debugger/scene_debugger.cpp b/scene/debugger/scene_debugger.cpp
+index 9b9f0455a13..22ff0611a74 100644
+--- a/scene/debugger/scene_debugger.cpp
++++ b/scene/debugger/scene_debugger.cpp
+@@ -347,13 +347,17 @@ void SceneDebuggerObject::serialize(Array &r_arr, int p_max_size) {
+ 		const PropertyInfo &pi = properties[i].first;
+ 		Variant &var = properties[i].second;
+ 
+-		WeakRef *ref = Object::cast_to<WeakRef>(var);
+-		if (ref) {
+-			var = ref->get_ref();
+-		}
+-
+ 		RES res = var;
+ 
++		if (var.get_type() == Variant::OBJECT && var.is_ref()) {
++			REF r = var;
++			if (r.is_valid()) {
++				res = *r;
++			} else {
++				res = RES();
++			}
++		}
++
+ 		Array prop;
+ 		prop.push_back(pi.name);
+ 		prop.push_back(pi.type);
+

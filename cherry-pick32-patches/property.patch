@@ -1,0 +1,78 @@
+From 28d3f85e64493de58ddd4f83a72545ff6fa617a6 Mon Sep 17 00:00:00 2001
+From: Michael Alexsander <michaelalexsander@protonmail.com>
+Date: Wed, 26 Feb 2020 00:22:18 -0300
+Subject: [PATCH] Don't show a copy of the property's name in the inspector's
+ tooltip if there's no description
+
+---
+ editor/connections_dialog.cpp |  1 -
+ editor/editor_inspector.cpp   | 36 +++++++++++++++++++++++++++--------
+ 2 files changed, 28 insertions(+), 9 deletions(-)
+
+diff --git a/editor/connections_dialog.cpp b/editor/connections_dialog.cpp
+index 2adc6f5398e..f78867e493e 100644
+--- a/editor/connections_dialog.cpp
++++ b/editor/connections_dialog.cpp
+@@ -502,7 +502,6 @@ Control *ConnectionsDockTree::make_custom_tooltip(const String &p_text) const {
+ 	String text = TTR("Signal:") + " [u][b]" + p_text.get_slice("::", 0) + "[/b][/u]";
+ 	text += p_text.get_slice("::", 1).strip_edges() + "\n";
+ 	text += p_text.get_slice("::", 2).strip_edges();
+-	help_bit->set_text(text);
+ 	help_bit->call_deferred("set_text", text); //hack so it uses proper theme once inside scene
+ 	return help_bit;
+ }
+diff --git a/editor/editor_inspector.cpp b/editor/editor_inspector.cpp
+index d10cc7f91eb..adf6a42f53e 100644
+--- a/editor/editor_inspector.cpp
++++ b/editor/editor_inspector.cpp
+@@ -778,10 +778,20 @@ Control *EditorProperty::make_custom_tooltip(const String &p_text) const {
+ 	help_bit->add_style_override("panel", get_stylebox("panel", "TooltipPanel"));
+ 	help_bit->get_rich_text()->set_fixed_size_to_width(360 * EDSCALE);
+ 
+-	String text = TTR("Property:") + " [u][b]" + p_text.get_slice("::", 0) + "[/b][/u]\n";
+-	text += p_text.get_slice("::", 1).strip_edges();
+-	help_bit->set_text(text);
+-	help_bit->call_deferred("set_text", text); //hack so it uses proper theme once inside scene
++	PackedStringArray slices = p_text.split("::", false);
++	if (!slices.empty()) {
++		String property_name = slices[0].strip_edges();
++		String text = TTR("Property:") + " [u][b]" + property_name + "[/b][/u]";
++
++		if (slices.size() > 1) {
++			String property_doc = slices[1].strip_edges();
++			if (property_name != property_doc) {
++				text += "\n" + property_doc;
++			}
++		}
++		help_bit->call_deferred("set_text", text); //hack so it uses proper theme once inside scene
++	}
++
+ 	return help_bit;
+ }
+ 
+@@ -1005,10 +1015,20 @@ Control *EditorInspectorCategory::make_custom_tooltip(const String &p_text) cons
+ 	help_bit->add_style_override("panel", get_stylebox("panel", "TooltipPanel"));
+ 	help_bit->get_rich_text()->set_fixed_size_to_width(360 * EDSCALE);
+ 
+-	String text = "[u][b]" + p_text.get_slice("::", 0) + "[/b][/u]\n";
+-	text += p_text.get_slice("::", 1).strip_edges();
+-	help_bit->set_text(text);
+-	help_bit->call_deferred("set_text", text); //hack so it uses proper theme once inside scene
++	PackedStringArray slices = p_text.split("::", false);
++	if (!slices.empty()) {
++		String property_name = slices[0].strip_edges();
++		String text = "[u][b]" + property_name + "[/b][/u]";
++
++		if (slices.size() > 1) {
++			String property_doc = slices[1].strip_edges();
++			if (property_name != property_doc) {
++				text += "\n" + property_doc;
++			}
++		}
++		help_bit->call_deferred("set_text", text); //hack so it uses proper theme once inside scene
++	}
++
+ 	return help_bit;
+ }
+ 
+

@@ -1,0 +1,23 @@
+From eced623c579d59d4cfdb48fd983a47f497d6024c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?R=C3=A9mi=20Verschelde?= <rverschelde@gmail.com>
+Date: Thu, 27 Feb 2020 20:51:43 +0100
+Subject: [PATCH] Fix build after merge of #36077
+
+---
+ editor/find_in_files.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/editor/find_in_files.cpp b/editor/find_in_files.cpp
+index cdac5a7f27f..0bc9b0585c8 100644
+--- a/editor/find_in_files.cpp
++++ b/editor/find_in_files.cpp
+@@ -596,7 +596,7 @@ FindInFilesPanel::FindInFilesPanel() {
+ 
+ 		_refresh_button = memnew(Button);
+ 		_refresh_button->set_text(TTR("Refresh"));
+-		_refresh_button->connect("pressed", this, "_on_refresh_button_clicked");
++		_refresh_button->connect_compat("pressed", this, "_on_refresh_button_clicked");
+ 		_refresh_button->hide();
+ 		hbc->add_child(_refresh_button);
+ 
+ 

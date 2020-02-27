@@ -1,0 +1,24 @@
+From ac3c93077c3747535f1631eda6f7e9497705c849 Mon Sep 17 00:00:00 2001
+From: Hugo Locurcio <hugo.locurcio@hugo.pro>
+Date: Tue, 18 Feb 2020 22:57:40 +0100
+Subject: [PATCH] Decrease the script editor's default split width to 70
+
+This also makes its value change to match the editor scale.
+---
+ editor/plugins/script_editor_plugin.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/editor/plugins/script_editor_plugin.cpp b/editor/plugins/script_editor_plugin.cpp
+index f12be18c21b..6b0056edd14 100644
+--- a/editor/plugins/script_editor_plugin.cpp
++++ b/editor/plugins/script_editor_plugin.cpp
+@@ -3228,7 +3228,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
+ 	scripts_vbox->add_child(script_list);
+ 	script_list->set_custom_minimum_size(Size2(150, 60) * EDSCALE); //need to give a bit of limit to avoid it from disappearing
+ 	script_list->set_v_size_flags(SIZE_EXPAND_FILL);
+-	script_split->set_split_offset(140);
++	script_split->set_split_offset(70 * EDSCALE);
+ 	_sort_list_on_update = true;
+ 	script_list->connect("gui_input", this, "_script_list_gui_input", varray(), CONNECT_DEFERRED);
+ 	script_list->set_allow_rmb_select(true);
+
