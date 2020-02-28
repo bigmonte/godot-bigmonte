@@ -1,0 +1,37 @@
+From 5134317afc8cbb1f51b29e9862c19d4f54d3a1d9 Mon Sep 17 00:00:00 2001
+From: Christoph Schroeder <call-schroedi@web.de>
+Date: Wed, 26 Feb 2020 12:03:49 +0100
+Subject: [PATCH] Fixes touch events for HTML
+
+Without this patch, the following exception is thrown when the touch
+screen is used: TypeError: e.getBoundingClientRect is not a function.
+No touch events arrive in the engine.
+
+From my testing, this PR fixes the issue and behaves as expected.
+
+Tested with godot-demo-projects/misc/multitouch_view/, emscripten 1.39.8
+and Firefox mobile emulator as well as FF on Android
+---
+ platform/javascript/os_javascript.cpp | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/platform/javascript/os_javascript.cpp b/platform/javascript/os_javascript.cpp
+index 5acdc5f602c..d57cdd55494 100644
+--- a/platform/javascript/os_javascript.cpp
++++ b/platform/javascript/os_javascript.cpp
+@@ -981,10 +981,10 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver,
+ 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, mousedown, mouse_button_callback)
+ 	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, mouseup, mouse_button_callback)
+ 	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, wheel, wheel_callback)
+-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchstart, touch_press_callback)
+-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchmove, touchmove_callback)
+-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchend, touch_press_callback)
+-	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_WINDOW, touchcancel, touch_press_callback)
++	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchstart, touch_press_callback)
++	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchmove, touchmove_callback)
++	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchend, touch_press_callback)
++	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, touchcancel, touch_press_callback)
+ 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, keydown, keydown_callback)
+ 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, keypress, keypress_callback)
+ 	SET_EM_CALLBACK(GODOT_CANVAS_SELECTOR, keyup, keyup_callback)
+

@@ -1,0 +1,93 @@
+From 6238dff91bd78b415377f0999b21fe52f3fbe641 Mon Sep 17 00:00:00 2001
+From: QbieShay <cislaghi.ilaria@gmail.com>
+Date: Wed, 16 Oct 2019 10:48:14 +0200
+Subject: [PATCH] Added a SRC_VERTEX keyword in canvas item vertex shader
+
+There are some cases where having information on the position compared
+to the full quad is useful, for example a vertical fade based on the
+quad's y UV coordinate.
+---
+ drivers/gles2/shader_compiler_gles2.cpp | 1 +
+ drivers/gles2/shaders/canvas.glsl       | 1 +
+ drivers/gles3/shader_compiler_gles3.cpp | 1 +
+ drivers/gles3/shaders/canvas.glsl       | 3 +--
+ servers/visual/shader_types.cpp         | 1 +
+ 5 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gles2/shader_compiler_gles2.cpp b/drivers/gles2/shader_compiler_gles2.cpp
+index 7e9b6fdb826..20f7f82caf8 100644
+--- a/drivers/gles2/shader_compiler_gles2.cpp
++++ b/drivers/gles2/shader_compiler_gles2.cpp
+@@ -932,6 +932,7 @@ ShaderCompilerGLES2::ShaderCompilerGLES2() {
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["SCREEN_PIXEL_SIZE"] = "screen_pixel_size";
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["FRAGCOORD"] = "gl_FragCoord";
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["POINT_COORD"] = "gl_PointCoord";
++	actions[VS::SHADER_CANVAS_ITEM].renames["SRC_VERTEX"] = "src_vertex";
+ 
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["LIGHT_VEC"] = "light_vec";
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["LIGHT_HEIGHT"] = "light_height";
+diff --git a/drivers/gles2/shaders/canvas.glsl b/drivers/gles2/shaders/canvas.glsl
+index 08548ded17b..50b59c8f2ed 100644
+--- a/drivers/gles2/shaders/canvas.glsl
++++ b/drivers/gles2/shaders/canvas.glsl
+@@ -108,6 +108,7 @@ void main() {
+ 
+ 	vec4 color = color_attrib;
+ 	vec2 uv;
++	vec2 src_vertex = vertex;
+ 
+ #ifdef USE_INSTANCING
+ 	mat4 extra_matrix_instance = extra_matrix * transpose(mat4(instance_xform0, instance_xform1, instance_xform2, vec4(0.0, 0.0, 0.0, 1.0)));
+diff --git a/drivers/gles3/shader_compiler_gles3.cpp b/drivers/gles3/shader_compiler_gles3.cpp
+index 7499962da37..b1db7990f4c 100644
+--- a/drivers/gles3/shader_compiler_gles3.cpp
++++ b/drivers/gles3/shader_compiler_gles3.cpp
+@@ -934,6 +934,7 @@ ShaderCompilerGLES3::ShaderCompilerGLES3() {
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["SCREEN_PIXEL_SIZE"] = "screen_pixel_size";
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["FRAGCOORD"] = "gl_FragCoord";
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["POINT_COORD"] = "gl_PointCoord";
++	actions[VS::SHADER_CANVAS_ITEM].renames["SRC_VERTEX"] = "src_vertex";
+ 
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["LIGHT_VEC"] = "light_vec";
+ 	actions[VS::SHADER_CANVAS_ITEM].renames["LIGHT_HEIGHT"] = "light_height";
+diff --git a/drivers/gles3/shaders/canvas.glsl b/drivers/gles3/shaders/canvas.glsl
+index 7255b0425c2..0901c9fa6b9 100644
+--- a/drivers/gles3/shaders/canvas.glsl
++++ b/drivers/gles3/shaders/canvas.glsl
+@@ -113,7 +113,6 @@ VERTEX_SHADER_GLOBALS
+ void main() {
+ 
+ 	vec4 color = color_attrib;
+-
+ #ifdef USE_INSTANCING
+ 	mat4 extra_matrix_instance = extra_matrix * transpose(mat4(instance_xform0, instance_xform1, instance_xform2, vec4(0.0, 0.0, 0.0, 1.0)));
+ 	color *= instance_color;
+@@ -148,6 +147,7 @@ void main() {
+ 	outvec.xy /= color_texpixel_size;
+ #endif
+ 
++	vec2 src_vertex = vertex;
+ #define extra_matrix extra_matrix_instance
+ 
+ 	//for compatibility with the fragment shader we need to use uv here
+@@ -443,7 +443,6 @@ void main() {
+ 	if (draw_center == 0) {
+ 		color.a = 0.0;
+ 	}
+-
+ 	uv = uv * src_rect.zw + src_rect.xy; //apply region if needed
+ #endif
+ 
+diff --git a/servers/visual/shader_types.cpp b/servers/visual/shader_types.cpp
+index 019f4773626..fb112e48ff4 100644
+--- a/servers/visual/shader_types.cpp
++++ b/servers/visual/shader_types.cpp
+@@ -208,6 +208,7 @@ ShaderTypes::ShaderTypes() {
+ 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"].built_ins["INSTANCE_CUSTOM"] = constt(ShaderLanguage::TYPE_VEC4);
+ 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"].built_ins["AT_LIGHT_PASS"] = constt(ShaderLanguage::TYPE_BOOL);
+ 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"].built_ins["TEXTURE_PIXEL_SIZE"] = constt(ShaderLanguage::TYPE_VEC2);
++	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"].built_ins["SRC_VERTEX"] = constt(ShaderLanguage::TYPE_VEC2);
+ 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["vertex"].can_discard = false;
+ 
+ 	shader_modes[VS::SHADER_CANVAS_ITEM].functions["fragment"].built_ins["FRAGCOORD"] = constt(ShaderLanguage::TYPE_VEC4);
+
