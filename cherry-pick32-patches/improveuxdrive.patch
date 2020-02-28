@@ -1,0 +1,404 @@
+From c791e701644be4356c5dc478cc8c4c2e4b87c051 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Pedro=20J=2E=20Est=C3=A9banez?= <pedrojrulez@gmail.com>
+Date: Mon, 10 Feb 2020 09:19:29 +0100
+Subject: [PATCH] Improve UX of drive letters
+
+Namely, move the drive dropdown to just the left of the path text box and don't include the former
+in the latter.
+
+This improves the UX on Windows.
+
+In the UNIX case, since its concept of drives is (ab)used to provide shortcuts to useful paths, its
+dropdown is kept at the original location.
+---
+ core/bind/core_bind.cpp                  |  6 +++---
+ core/bind/core_bind.h                    |  2 +-
+ core/io/file_access_pack.cpp             |  2 +-
+ core/io/file_access_pack.h               |  2 +-
+ core/os/dir_access.cpp                   |  5 +++++
+ core/os/dir_access.h                     |  3 ++-
+ doc/classes/Directory.xml                |  3 +++
+ drivers/unix/dir_access_unix.cpp         |  7 ++++++-
+ drivers/unix/dir_access_unix.h           |  3 ++-
+ drivers/windows/dir_access_windows.cpp   |  8 ++++++--
+ drivers/windows/dir_access_windows.h     |  2 +-
+ editor/editor_file_dialog.cpp            | 26 ++++++++++++++++++------
+ editor/editor_file_dialog.h              |  2 ++
+ platform/android/dir_access_jandroid.cpp |  2 +-
+ platform/android/dir_access_jandroid.h   |  2 +-
+ scene/gui/file_dialog.cpp                | 19 ++++++++++++++---
+ scene/gui/file_dialog.h                  |  2 ++
+ 17 files changed, 73 insertions(+), 23 deletions(-)
+
+diff --git a/core/bind/core_bind.cpp b/core/bind/core_bind.cpp
+index efd7e3dbf5b..94013ca576f 100644
+--- a/core/bind/core_bind.cpp
++++ b/core/bind/core_bind.cpp
+@@ -2362,10 +2362,10 @@ Error _Directory::change_dir(String p_dir) {
+ 	ERR_FAIL_COND_V_MSG(!d, ERR_UNCONFIGURED, "Directory must be opened before use.");
+ 	return d->change_dir(p_dir);
+ }
+-String _Directory::get_current_dir() {
++String _Directory::get_current_dir(bool p_include_drive) {
+ 
+ 	ERR_FAIL_COND_V_MSG(!d, "", "Directory must be opened before use.");
+-	return d->get_current_dir();
++	return d->get_current_dir(p_include_drive);
+ }
+ Error _Directory::make_dir(String p_dir) {
+ 
+@@ -2462,7 +2462,7 @@ void _Directory::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("get_drive", "idx"), &_Directory::get_drive);
+ 	ClassDB::bind_method(D_METHOD("get_current_drive"), &_Directory::get_current_drive);
+ 	ClassDB::bind_method(D_METHOD("change_dir", "todir"), &_Directory::change_dir);
+-	ClassDB::bind_method(D_METHOD("get_current_dir"), &_Directory::get_current_dir);
++	ClassDB::bind_method(D_METHOD("get_current_dir", "include_drive"), &_Directory::get_current_dir, DEFVAL(true));
+ 	ClassDB::bind_method(D_METHOD("make_dir", "path"), &_Directory::make_dir);
+ 	ClassDB::bind_method(D_METHOD("make_dir_recursive", "path"), &_Directory::make_dir_recursive);
+ 	ClassDB::bind_method(D_METHOD("file_exists", "path"), &_Directory::file_exists);
+diff --git a/core/bind/core_bind.h b/core/bind/core_bind.h
+index 87da51f97ed..50e054ecd38 100644
+--- a/core/bind/core_bind.h
++++ b/core/bind/core_bind.h
+@@ -576,7 +576,7 @@ class _Directory : public Reference {
+ 	int get_current_drive();
+ 
+ 	Error change_dir(String p_dir); // Can be relative or absolute, return false on success.
+-	String get_current_dir(); // Return current dir location.
++	String get_current_dir(bool p_include_drive = true); // Return current dir location.
+ 
+ 	Error make_dir(String p_dir);
+ 	Error make_dir_recursive(String p_dir);
+diff --git a/core/io/file_access_pack.cpp b/core/io/file_access_pack.cpp
+index 83ce03418af..055ce816ad1 100644
+--- a/core/io/file_access_pack.cpp
++++ b/core/io/file_access_pack.cpp
+@@ -454,7 +454,7 @@ Error DirAccessPack::change_dir(String p_dir) {
+ 	return OK;
+ }
+ 
+-String DirAccessPack::get_current_dir() {
++String DirAccessPack::get_current_dir(bool p_include_drive) {
+ 
+ 	PackedData::PackedDir *pd = current;
+ 	String p = current->name;
+diff --git a/core/io/file_access_pack.h b/core/io/file_access_pack.h
+index b6ea9c158fd..e1f35aabdd9 100644
+--- a/core/io/file_access_pack.h
++++ b/core/io/file_access_pack.h
+@@ -216,7 +216,7 @@ class DirAccessPack : public DirAccess {
+ 	virtual String get_drive(int p_drive);
+ 
+ 	virtual Error change_dir(String p_dir);
+-	virtual String get_current_dir();
++	virtual String get_current_dir(bool p_include_drive = true);
+ 
+ 	virtual bool file_exists(String p_file);
+ 	virtual bool dir_exists(String p_dir);
+diff --git a/core/os/dir_access.cpp b/core/os/dir_access.cpp
+index 0477db82be0..8f2f08bce1c 100644
+--- a/core/os/dir_access.cpp
++++ b/core/os/dir_access.cpp
+@@ -66,6 +66,11 @@ int DirAccess::get_current_drive() {
+ 	return 0;
+ }
+ 
++bool DirAccess::drives_are_shortcuts() {
++
++	return false;
++}
++
+ static Error _erase_recursive(DirAccess *da) {
+ 
+ 	List<String> dirs;
+diff --git a/core/os/dir_access.h b/core/os/dir_access.h
+index 55a6d53f72f..aac6c67f0ad 100644
+--- a/core/os/dir_access.h
++++ b/core/os/dir_access.h
+@@ -76,9 +76,10 @@ class DirAccess {
+ 	virtual int get_drive_count() = 0;
+ 	virtual String get_drive(int p_drive) = 0;
+ 	virtual int get_current_drive();
++	virtual bool drives_are_shortcuts();
+ 
+ 	virtual Error change_dir(String p_dir) = 0; ///< can be relative or absolute, return false on success
+-	virtual String get_current_dir() = 0; ///< return current dir location
++	virtual String get_current_dir(bool p_include_drive = true) = 0; ///< return current dir location
+ 	virtual Error make_dir(String p_dir) = 0;
+ 	virtual Error make_dir_recursive(String p_dir);
+ 	virtual Error erase_contents_recursive(); //super dangerous, use with care!
+diff --git a/doc/classes/Directory.xml b/doc/classes/Directory.xml
+index 2186f2adca9..4e1acb8fec8 100644
+--- a/doc/classes/Directory.xml
++++ b/doc/classes/Directory.xml
+@@ -77,8 +77,11 @@
+ 		<method name="get_current_dir">
+ 			<return type="String">
+ 			</return>
++			<argument index="0" name="include_drive" type="bool" default="true">
++			</argument>
+ 			<description>
+ 				Returns the absolute path to the currently opened directory (e.g. [code]res://folder[/code] or [code]C:\tmp\folder[/code]).
++				On Windows, if [code]include_drive[/code] is [code]false[/code], the leading drive specificator is omitted from the returned value (e.g. [code]\tmp\folder[/code]).
+ 			</description>
+ 		</method>
+ 		<method name="get_current_drive">
+diff --git a/drivers/unix/dir_access_unix.cpp b/drivers/unix/dir_access_unix.cpp
+index 02cb4fa956c..715bc560038 100644
+--- a/drivers/unix/dir_access_unix.cpp
++++ b/drivers/unix/dir_access_unix.cpp
+@@ -269,6 +269,11 @@ String DirAccessUnix::get_drive(int p_drive) {
+ 	return list[p_drive];
+ }
+ 
++bool DirAccessUnix::drives_are_shortcuts() {
++
++	return true;
++}
++
+ Error DirAccessUnix::make_dir(String p_dir) {
+ 
+ 	GLOBAL_LOCK_FUNCTION
+@@ -337,7 +342,7 @@ Error DirAccessUnix::change_dir(String p_dir) {
+ 	return OK;
+ }
+ 
+-String DirAccessUnix::get_current_dir() {
++String DirAccessUnix::get_current_dir(bool p_include_drive) {
+ 
+ 	String base = _get_root_path();
+ 	if (base != "") {
+diff --git a/drivers/unix/dir_access_unix.h b/drivers/unix/dir_access_unix.h
+index 32ddc766389..b403d8e356d 100644
+--- a/drivers/unix/dir_access_unix.h
++++ b/drivers/unix/dir_access_unix.h
+@@ -63,9 +63,10 @@ class DirAccessUnix : public DirAccess {
+ 
+ 	virtual int get_drive_count();
+ 	virtual String get_drive(int p_drive);
++	virtual bool drives_are_shortcuts();
+ 
+ 	virtual Error change_dir(String p_dir); ///< can be relative or absolute, return false on success
+-	virtual String get_current_dir(); ///< return current dir location
++	virtual String get_current_dir(bool p_include_drive = true); ///< return current dir location
+ 	virtual Error make_dir(String p_dir);
+ 
+ 	virtual bool file_exists(String p_file);
+diff --git a/drivers/windows/dir_access_windows.cpp b/drivers/windows/dir_access_windows.cpp
+index 8e0eac6986b..cf09f798329 100644
+--- a/drivers/windows/dir_access_windows.cpp
++++ b/drivers/windows/dir_access_windows.cpp
+@@ -189,7 +189,7 @@ Error DirAccessWindows::make_dir(String p_dir) {
+ 	return ERR_CANT_CREATE;
+ }
+ 
+-String DirAccessWindows::get_current_dir() {
++String DirAccessWindows::get_current_dir(bool p_include_drive) {
+ 
+ 	String base = _get_root_path();
+ 	if (base != "") {
+@@ -203,7 +203,11 @@ String DirAccessWindows::get_current_dir() {
+ 	} else {
+ 	}
+ 
+-	return current_dir;
++	if (p_include_drive) {
++		return current_dir;
++	} else {
++		return current_dir.right(current_dir.find(":") + 1);
++	}
+ }
+ 
+ bool DirAccessWindows::file_exists(String p_file) {
+diff --git a/drivers/windows/dir_access_windows.h b/drivers/windows/dir_access_windows.h
+index 43951c0be9a..f59e4d70304 100644
+--- a/drivers/windows/dir_access_windows.h
++++ b/drivers/windows/dir_access_windows.h
+@@ -69,7 +69,7 @@ class DirAccessWindows : public DirAccess {
+ 	virtual String get_drive(int p_drive);
+ 
+ 	virtual Error change_dir(String p_dir); ///< can be relative or absolute, return false on success
+-	virtual String get_current_dir(); ///< return current dir location
++	virtual String get_current_dir(bool p_include_drive = true); ///< return current dir location
+ 
+ 	virtual bool file_exists(String p_file);
+ 	virtual bool dir_exists(String p_dir);
+diff --git a/editor/editor_file_dialog.cpp b/editor/editor_file_dialog.cpp
+index 625f46f9d3c..238536e60fa 100644
+--- a/editor/editor_file_dialog.cpp
++++ b/editor/editor_file_dialog.cpp
+@@ -199,7 +199,10 @@ Vector<String> EditorFileDialog::get_selected_files() const {
+ 
+ void EditorFileDialog::update_dir() {
+ 
+-	dir->set_text(dir_access->get_current_dir());
++	if (drives->is_visible()) {
++		drives->select(dir_access->get_current_drive());
++	}
++	dir->set_text(dir_access->get_current_dir(false));
+ 
+ 	// Disable "Open" button only when selecting file(s) mode.
+ 	get_ok()->set_disabled(_is_open_should_be_disabled());
+@@ -946,7 +949,7 @@ void EditorFileDialog::add_filter(const String &p_filter) {
+ 
+ String EditorFileDialog::get_current_dir() const {
+ 
+-	return dir->get_text();
++	return dir_access->get_current_dir();
+ }
+ String EditorFileDialog::get_current_file() const {
+ 
+@@ -954,7 +957,7 @@ String EditorFileDialog::get_current_file() const {
+ }
+ String EditorFileDialog::get_current_path() const {
+ 
+-	return dir->get_text().plus_file(file->get_text());
++	return dir_access->get_current_dir().plus_file(file->get_text());
+ }
+ void EditorFileDialog::set_current_dir(const String &p_dir) {
+ 
+@@ -1149,6 +1152,12 @@ void EditorFileDialog::_update_drives() {
+ 		drives->hide();
+ 	} else {
+ 		drives->clear();
++		Node *dp = drives->get_parent();
++		if (dp) {
++			dp->remove_child(drives);
++		}
++		dp = dir_access->drives_are_shortcuts() ? shortcuts_container : drives_container;
++		dp->add_child(drives);
+ 		drives->show();
+ 
+ 		for (int i = 0; i < dir_access->get_drive_count(); i++) {
+@@ -1543,6 +1552,12 @@ EditorFileDialog::EditorFileDialog() {
+ 
+ 	pathhb->add_child(memnew(Label(TTR("Path:"))));
+ 
++	drives_container = memnew(HBoxContainer);
++	pathhb->add_child(drives_container);
++
++	drives = memnew(OptionButton);
++	drives->connect("item_selected", this, "_select_drive");
++
+ 	dir = memnew(LineEdit);
+ 	pathhb->add_child(dir);
+ 	dir->set_h_size_flags(SIZE_EXPAND_FILL);
+@@ -1586,9 +1601,8 @@ EditorFileDialog::EditorFileDialog() {
+ 	mode_list->set_tooltip(TTR("View items as a list."));
+ 	pathhb->add_child(mode_list);
+ 
+-	drives = memnew(OptionButton);
+-	pathhb->add_child(drives);
+-	drives->connect("item_selected", this, "_select_drive");
++	shortcuts_container = memnew(HBoxContainer);
++	pathhb->add_child(shortcuts_container);
+ 
+ 	makedir = memnew(Button);
+ 	makedir->set_text(TTR("Create Folder"));
+diff --git a/editor/editor_file_dialog.h b/editor/editor_file_dialog.h
+index 6af261e8dd4..e7ee178b375 100644
+--- a/editor/editor_file_dialog.h
++++ b/editor/editor_file_dialog.h
+@@ -100,6 +100,8 @@ class EditorFileDialog : public ConfirmationDialog {
+ 	ToolButton *dir_next;
+ 	ToolButton *dir_up;
+ 
++	HBoxContainer *drives_container;
++	HBoxContainer *shortcuts_container;
+ 	OptionButton *drives;
+ 	ItemList *item_list;
+ 	PopupMenu *item_menu;
+diff --git a/platform/android/dir_access_jandroid.cpp b/platform/android/dir_access_jandroid.cpp
+index f52b511522c..ebcac884dbe 100644
+--- a/platform/android/dir_access_jandroid.cpp
++++ b/platform/android/dir_access_jandroid.cpp
+@@ -144,7 +144,7 @@ Error DirAccessJAndroid::change_dir(String p_dir) {
+ 	return OK;
+ }
+ 
+-String DirAccessJAndroid::get_current_dir() {
++String DirAccessJAndroid::get_current_dir(bool p_include_drive) {
+ 
+ 	return "res://" + current_dir;
+ }
+diff --git a/platform/android/dir_access_jandroid.h b/platform/android/dir_access_jandroid.h
+index caeb4b58b92..8dab3e50ce2 100644
+--- a/platform/android/dir_access_jandroid.h
++++ b/platform/android/dir_access_jandroid.h
+@@ -65,7 +65,7 @@ class DirAccessJAndroid : public DirAccess {
+ 	virtual String get_drive(int p_drive);
+ 
+ 	virtual Error change_dir(String p_dir); ///< can be relative or absolute, return false on success
+-	virtual String get_current_dir(); ///< return current dir location
++	virtual String get_current_dir(bool p_include_drive = true); ///< return current dir location
+ 
+ 	virtual bool file_exists(String p_file);
+ 	virtual bool dir_exists(String p_dir);
+diff --git a/scene/gui/file_dialog.cpp b/scene/gui/file_dialog.cpp
+index 2cc9c1a53a8..be45de04d59 100644
+--- a/scene/gui/file_dialog.cpp
++++ b/scene/gui/file_dialog.cpp
+@@ -135,7 +135,8 @@ Vector<String> FileDialog::get_selected_files() const {
+ 
+ void FileDialog::update_dir() {
+ 
+-	dir->set_text(dir_access->get_current_dir());
++	dir->set_text(dir_access->get_current_dir(false));
++
+ 	if (drives->is_visible()) {
+ 		drives->select(dir_access->get_current_drive());
+ 	}
+@@ -789,6 +790,12 @@ void FileDialog::_update_drives() {
+ 		drives->hide();
+ 	} else {
+ 		drives->clear();
++		Node *dp = drives->get_parent();
++		if (dp) {
++			dp->remove_child(drives);
++		}
++		dp = dir_access->drives_are_shortcuts() ? shortcuts_container : drives_container;
++		dp->add_child(drives);
+ 		drives->show();
+ 
+ 		for (int i = 0; i < dir_access->get_drive_count(); i++) {
+@@ -902,11 +909,14 @@ FileDialog::FileDialog() {
+ 	hbc->add_child(dir_up);
+ 	dir_up->connect("pressed", this, "_go_up");
+ 
++	hbc->add_child(memnew(Label(RTR("Path:"))));
++
++	drives_container = memnew(HBoxContainer);
++	hbc->add_child(drives_container);
++
+ 	drives = memnew(OptionButton);
+-	hbc->add_child(drives);
+ 	drives->connect("item_selected", this, "_select_drive");
+ 
+-	hbc->add_child(memnew(Label(RTR("Path:"))));
+ 	dir = memnew(LineEdit);
+ 	hbc->add_child(dir);
+ 	dir->set_h_size_flags(SIZE_EXPAND_FILL);
+@@ -923,6 +933,9 @@ FileDialog::FileDialog() {
+ 	show_hidden->connect("toggled", this, "set_show_hidden_files");
+ 	hbc->add_child(show_hidden);
+ 
++	shortcuts_container = memnew(HBoxContainer);
++	hbc->add_child(shortcuts_container);
++
+ 	makedir = memnew(Button);
+ 	makedir->set_text(RTR("Create Folder"));
+ 	makedir->connect("pressed", this, "_make_dir");
+diff --git a/scene/gui/file_dialog.h b/scene/gui/file_dialog.h
+index d9ab00e0f2d..fdf26489f7b 100644
+--- a/scene/gui/file_dialog.h
++++ b/scene/gui/file_dialog.h
+@@ -76,6 +76,8 @@ class FileDialog : public ConfirmationDialog {
+ 	VBoxContainer *vbox;
+ 	Mode mode;
+ 	LineEdit *dir;
++	HBoxContainer *drives_container;
++	HBoxContainer *shortcuts_container;
+ 	OptionButton *drives;
+ 	Tree *tree;
+ 	HBoxContainer *file_box;
+
