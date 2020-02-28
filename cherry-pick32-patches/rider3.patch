@@ -1,0 +1,55 @@
+From c95e20a089b7ef1bcc2bd0955bbb7504fdd5729f Mon Sep 17 00:00:00 2001
+From: Ivan Shakhov <Ivan.Shakhov@jetbrains.com>
+Date: Fri, 28 Feb 2020 21:34:20 +0100
+Subject: [PATCH] On Windows find Rider installed for CurrentUser
+
+---
+ .../GodotTools/Ides/Rider/RiderPathLocator.cs | 31 ++++++++++++-------
+ 1 file changed, 20 insertions(+), 11 deletions(-)
+
+diff --git a/modules/mono/editor/GodotTools/GodotTools/Ides/Rider/RiderPathLocator.cs b/modules/mono/editor/GodotTools/GodotTools/Ides/Rider/RiderPathLocator.cs
+index 5965e0fbcfa..77740f0e536 100644
+--- a/modules/mono/editor/GodotTools/GodotTools/Ides/Rider/RiderPathLocator.cs
++++ b/modules/mono/editor/GodotTools/GodotTools/Ides/Rider/RiderPathLocator.cs
+@@ -218,20 +218,29 @@ private static string GetRelativePathToBuildTxt()
+ 
+         private static void CollectPathsFromRegistry(string registryKey, List<string> installPaths)
+         {
++            using (var key = Registry.CurrentUser.OpenSubKey(registryKey))
++            {
++                CollectPathsFromRegistry(installPaths, key);
++            }
+             using (var key = Registry.LocalMachine.OpenSubKey(registryKey))
+             {
+-                if (key == null) return;
+-                foreach (var subkeyName in key.GetSubKeyNames().Where(a => a.Contains("Rider")))
++                CollectPathsFromRegistry(installPaths, key);
++            }
++        }
++
++        private static void CollectPathsFromRegistry(List<string> installPaths, RegistryKey key)
++        {
++            if (key == null) return;
++            foreach (var subkeyName in key.GetSubKeyNames().Where(a => a.Contains("Rider")))
++            {
++                using (var subkey = key.OpenSubKey(subkeyName))
+                 {
+-                    using (var subkey = key.OpenSubKey(subkeyName))
+-                    {
+-                        var folderObject = subkey?.GetValue("InstallLocation");
+-                        if (folderObject == null) continue;
+-                        var folder = folderObject.ToString();
+-                        var possiblePath = Path.Combine(folder, @"bin\rider64.exe");
+-                        if (File.Exists(possiblePath))
+-                            installPaths.Add(possiblePath);
+-                    }
++                    var folderObject = subkey?.GetValue("InstallLocation");
++                    if (folderObject == null) continue;
++                    var folder = folderObject.ToString();
++                    var possiblePath = Path.Combine(folder, @"bin\rider64.exe");
++                    if (File.Exists(possiblePath))
++                        installPaths.Add(possiblePath);
+                 }
+             }
+         }
+
