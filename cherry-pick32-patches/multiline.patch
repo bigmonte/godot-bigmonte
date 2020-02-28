@@ -1,0 +1,24 @@
+From ed255d4d7e5f205e11d39a3f210c4b72daf97cd7 Mon Sep 17 00:00:00 2001
+From: Lakshay Angrish <angrishlakshay@gmail.com>
+Date: Sun, 26 Jan 2020 23:05:15 +0530
+Subject: [PATCH] remove multiline indexing error
+
+---
+ modules/gdscript/gdscript_parser.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/modules/gdscript/gdscript_parser.cpp b/modules/gdscript/gdscript_parser.cpp
+index d125da5b79f..bd61b13ad2e 100644
+--- a/modules/gdscript/gdscript_parser.cpp
++++ b/modules/gdscript/gdscript_parser.cpp
+@@ -1249,7 +1249,9 @@ GDScriptParser::Node *GDScriptParser::_parse_expression(Node *p_parent, bool p_s
+ 
+ 				tokenizer->advance(1);
+ 
++				parenthesis++;
+ 				Node *subexpr = _parse_expression(op, p_static, p_allow_assign, p_parsing_constant);
++				parenthesis--;
+ 				if (!subexpr) {
+ 					return NULL;
+ 				}
+

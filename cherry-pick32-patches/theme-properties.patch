@@ -1,0 +1,33 @@
+From 7a0e813ffaed8c72917e0183eb430323666d3f21 Mon Sep 17 00:00:00 2001
+From: Tomasz Chabora <kobewi4e@gmail.com>
+Date: Wed, 29 Jan 2020 19:56:03 +0100
+Subject: [PATCH] Show theme property descriptions in the inspector
+
+---
+ editor/editor_inspector.cpp | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/editor/editor_inspector.cpp b/editor/editor_inspector.cpp
+index 56da7d93fa6..2cb1f4ad38c 100644
+--- a/editor/editor_inspector.cpp
++++ b/editor/editor_inspector.cpp
+@@ -1687,6 +1687,18 @@ void EditorInspector::update_tree() {
+ 							break;
+ 						}
+ 					}
++
++					Vector<String> slices = propname.operator String().split("/");
++					if (slices.size() == 2 && slices[0].begins_with("custom_")) {
++						// Likely a theme property.
++						for (int i = 0; i < F->get().theme_properties.size(); i++) {
++							if (F->get().theme_properties[i].name == slices[1]) {
++								descr = F->get().theme_properties[i].description.strip_edges();
++								break;
++							}
++						}
++					}
++
+ 					if (!F->get().inherits.empty()) {
+ 						F = dd->class_list.find(F->get().inherits);
+ 					} else {
+

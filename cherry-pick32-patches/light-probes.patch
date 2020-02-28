@@ -1,0 +1,41 @@
+From 09c66bed2d428d0b1f2ed67a5251f399dc172923 Mon Sep 17 00:00:00 2001
+From: clayjohn <claynjohn@gmail.com>
+Date: Fri, 31 Jan 2020 10:45:30 -0800
+Subject: [PATCH] change light attentuation for GIProbes
+
+---
+ servers/visual/visual_server_scene.cpp | 13 ++-----------
+ 1 file changed, 2 insertions(+), 11 deletions(-)
+
+diff --git a/servers/visual/visual_server_scene.cpp b/servers/visual/visual_server_scene.cpp
+index f5767e93a2e..2027ecfd73d 100644
+--- a/servers/visual/visual_server_scene.cpp
++++ b/servers/visual/visual_server_scene.cpp
+@@ -2691,11 +2691,7 @@ void VisualServerScene::_bake_gi_probe_light(const GIProbeDataHeader *header, co
+ 						(((cells[idx].normal >> 8) & 0xFF) / 255.0) * 2.0 - 1.0,
+ 						(((cells[idx].normal >> 0) & 0xFF) / 255.0) * 2.0 - 1.0);
+ 
+-				float att = norm.dot(-light_axis);
+-				if (att < 0.001) {
+-					//not lighting towards this
+-					continue;
+-				}
++				float att = 1.0;
+ 
+ 				Vector3 from = to - max_len * light_axis;
+ 
+@@ -2762,12 +2758,7 @@ void VisualServerScene::_bake_gi_probe_light(const GIProbeDataHeader *header, co
+ 				Vector3 light_axis = (to - light_pos).normalized();
+ 				float distance_adv = _get_normal_advance(light_axis);
+ 
+-				float att = norm.dot(-light_axis);
+-				if (att < 0.001) {
+-					//not lighting towards this
+-					continue;
+-				}
+-
++				float att = 1.0;
+ 				{
+ 					float d = light_pos.distance_to(to);
+ 					if (d + distance_adv > local_radius)
+
