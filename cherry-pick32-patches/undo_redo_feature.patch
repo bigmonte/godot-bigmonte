@@ -1,0 +1,50 @@
+From f817ba83795ed4a8a44e569cce58bc37522860c0 Mon Sep 17 00:00:00 2001
+From: simpuid <utkarsh.email@yahoo.com>
+Date: Sat, 29 Feb 2020 08:55:28 +0530
+Subject: [PATCH] Implement undo-redo feature for Parameter Paste in the
+ Inspector
+
+EditorData::undo_redo.add_do_property and EditorData::undo_redo.add_undo_property is used in EditorData::paste_object_params to implement this feature. It's action name is set to "Paste Params"
+
+Changes made
+* Removed the call for clearing the history on paste params case.
+* Instead of directly setting the properties value, EditorData::undo_redo is used.
+---
+ editor/editor_data.cpp    | 8 ++++++--
+ editor/inspector_dock.cpp | 1 -
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/editor/editor_data.cpp b/editor/editor_data.cpp
+index 26d132665c3..192e7d286f8 100644
+--- a/editor/editor_data.cpp
++++ b/editor/editor_data.cpp
+@@ -435,10 +435,14 @@ void EditorData::restore_editor_global_states() {
+ 
+ void EditorData::paste_object_params(Object *p_object) {
+ 
++	ERR_FAIL_NULL(p_object);
++	undo_redo.create_action(TTR("Paste Params"));
+ 	for (List<PropertyData>::Element *E = clipboard.front(); E; E = E->next()) {
+-
+-		p_object->set(E->get().name, E->get().value);
++		String name = E->get().name;
++		undo_redo.add_do_property(p_object, name, E->get().value);
++		undo_redo.add_undo_property(p_object, name, p_object->get(name));
+ 	}
++	undo_redo.commit_action();
+ }
+ 
+ bool EditorData::call_build() {
+diff --git a/editor/inspector_dock.cpp b/editor/inspector_dock.cpp
+index 6b8cb494120..2729d9ecb59 100644
+--- a/editor/inspector_dock.cpp
++++ b/editor/inspector_dock.cpp
+@@ -76,7 +76,6 @@ void InspectorDock::_menu_option(int p_option) {
+ 			editor_data->apply_changes_in_editors();
+ 			if (current)
+ 				editor_data->paste_object_params(current);
+-			editor_data->get_undo_redo().clear_history();
+ 		} break;
+ 
+ 		case OBJECT_UNIQUE_RESOURCES: {
+

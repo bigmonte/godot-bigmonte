@@ -1,0 +1,33 @@
+From 35bc88ca34230cf7a62f34d20c960b3e3c669f42 Mon Sep 17 00:00:00 2001
+From: Gil Arasa Verge <gilarasaverge@gmail.com>
+Date: Fri, 28 Feb 2020 00:02:06 +0100
+Subject: [PATCH] Clicking backgrd. dimming of editor popup stops input event
+ propagation
+
+A click on the dimmed background of a popup in the editor should stop the input event from propagating to the background.
+
+This solution reuses the system introduced in commit efc3ffb8, taking advantage of the hide() notifications from the modal where we will set the flag "pass_on_modal_close_click(false)" to stop event handling at the viewport input event handling.
+The viewport first hides the modal and after marks the input as handled if the flag mentioned above is set.
+
+Fixes #36341
+---
+ scene/gui/dialogs.cpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/scene/gui/dialogs.cpp b/scene/gui/dialogs.cpp
+index 152738420a9..7839b7d66ac 100644
+--- a/scene/gui/dialogs.cpp
++++ b/scene/gui/dialogs.cpp
+@@ -247,8 +247,10 @@ void WindowDialog::_notification(int p_what) {
+ 		} break;
+ 
+ 		case NOTIFICATION_POPUP_HIDE: {
+-			if (get_tree() && Engine::get_singleton()->is_editor_hint() && EditorNode::get_singleton() && !was_editor_dimmed)
++			if (get_tree() && Engine::get_singleton()->is_editor_hint() && EditorNode::get_singleton() && !was_editor_dimmed) {
+ 				EditorNode::get_singleton()->dim_editor(false);
++				set_pass_on_modal_close_click(false);
++			}
+ 		} break;
+ #endif
+ 	}
+

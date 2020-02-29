@@ -1,0 +1,48 @@
+From 323735d7e390ac78063fa6acabb1ba7afdce3c02 Mon Sep 17 00:00:00 2001
+From: simpuid <utkarsh.email@yahoo.com>
+Date: Fri, 28 Feb 2020 19:25:51 +0530
+Subject: [PATCH 1/2] Changed default value of property curve to empty
+ Ref<Curve3D> for Path
+
+---
+ scene/3d/path.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scene/3d/path.cpp b/scene/3d/path.cpp
+index 0cdcbd9a1f7..25657cafa6b 100644
+--- a/scene/3d/path.cpp
++++ b/scene/3d/path.cpp
+@@ -88,7 +88,7 @@ void Path::_bind_methods() {
+ 
+ Path::Path() {
+ 
+-	set_curve(Ref<Curve3D>(memnew(Curve3D))); //create one by default
++	set_curve(Ref<Curve3D>());
+ }
+ 
+ //////////////
+
+From 646946621af34720e33d60ffb1a25c1f28f0c20d Mon Sep 17 00:00:00 2001
+From: simpuid <utkarsh.email@yahoo.com>
+Date: Fri, 28 Feb 2020 19:26:06 +0530
+Subject: [PATCH 2/2] Changed default value of property curve to empty
+ Ref<Curve2D> for Path2D
+
+---
+ scene/2d/path_2d.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scene/2d/path_2d.cpp b/scene/2d/path_2d.cpp
+index 9ef3d0ca4fa..096d995545e 100644
+--- a/scene/2d/path_2d.cpp
++++ b/scene/2d/path_2d.cpp
+@@ -162,7 +162,7 @@ void Path2D::_bind_methods() {
+ 
+ Path2D::Path2D() {
+ 
+-	set_curve(Ref<Curve2D>(memnew(Curve2D))); //create one by default
++	set_curve(Ref<Curve2D>());
+ 	set_self_modulate(Color(0.5, 0.6, 1.0, 0.7));
+ }
+ 
+
