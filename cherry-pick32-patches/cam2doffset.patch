@@ -1,0 +1,32 @@
+From 40816574ac789af9cfcc061eea5bd91aa1079f6b Mon Sep 17 00:00:00 2001
+From: Eevee <eevee.github@veekun.com>
+Date: Sat, 29 Feb 2020 16:50:33 -0700
+Subject: [PATCH] Fix inverted use of Camera2D.offset_v
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The code above for horizontal movement uses the right margin (_positive_ x direction) when the offset is negative, but vertical movement uses the top margin (_negative_ y direction) when the offset is negative.
+
+The resulting problem is easily seen in the editor — set the drag margins to be asymmetrical, turn on drawing the drag margins, and slide the offsets from -1 to 1 and back.  The horizontal offset moves the camera's center between the left and right margins, but the vertical offset gets them backwards and will move the camera outside the margins entirely.
+---
+ scene/2d/camera_2d.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/scene/2d/camera_2d.cpp b/scene/2d/camera_2d.cpp
+index 1419fb561ea..a8860c3d81e 100644
+--- a/scene/2d/camera_2d.cpp
++++ b/scene/2d/camera_2d.cpp
+@@ -128,9 +128,9 @@ Transform2D Camera2D::get_camera_transform() {
+ 			} else {
+ 
+ 				if (v_ofs < 0) {
+-					camera_pos.y = new_camera_pos.y + screen_size.y * 0.5 * drag_margin[MARGIN_TOP] * v_ofs;
+-				} else {
+ 					camera_pos.y = new_camera_pos.y + screen_size.y * 0.5 * drag_margin[MARGIN_BOTTOM] * v_ofs;
++				} else {
++					camera_pos.y = new_camera_pos.y + screen_size.y * 0.5 * drag_margin[MARGIN_TOP] * v_ofs;
+ 				}
+ 
+ 				v_offset_changed = false;
+

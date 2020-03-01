@@ -1,0 +1,42 @@
+From d35386263fcd5e0f92b2e676e3692ff3091dc2df Mon Sep 17 00:00:00 2001
+From: Michael Alexsander <michaelalexsander@protonmail.com>
+Date: Fri, 28 Feb 2020 00:03:55 -0300
+Subject: [PATCH] Fix import changing disabling checking on multiple files
+
+---
+ editor/import_dock.cpp | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/editor/import_dock.cpp b/editor/import_dock.cpp
+index 06c6f9940c1..ec37e49ee61 100644
+--- a/editor/import_dock.cpp
++++ b/editor/import_dock.cpp
+@@ -107,6 +107,9 @@ void ImportDock::set_edit_path(const String &p_path) {
+ 		return;
+ 	}
+ 
++	params->paths.clear();
++	params->paths.push_back(p_path);
++
+ 	_update_options(config);
+ 
+ 	List<Ref<ResourceImporter> > importers;
+@@ -129,8 +132,6 @@ void ImportDock::set_edit_path(const String &p_path) {
+ 		}
+ 	}
+ 
+-	params->paths.clear();
+-	params->paths.push_back(p_path);
+ 	import->set_disabled(false);
+ 	import_as->set_disabled(false);
+ 	preset->set_disabled(false);
+@@ -145,7 +146,7 @@ void ImportDock::_update_options(const Ref<ConfigFile> &p_config) {
+ 
+ 	params->properties.clear();
+ 	params->values.clear();
+-	params->checking = false;
++	params->checking = params->paths.size() > 1;
+ 	params->checked.clear();
+ 
+ 	for (List<ResourceImporter::ImportOption>::Element *E = options.front(); E; E = E->next()) {
+
