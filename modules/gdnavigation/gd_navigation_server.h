@@ -100,6 +100,10 @@ public:
 	virtual real_t map_get_edge_connection_margin(RID p_map) const;
 
 	virtual Vector<Vector3> map_get_path(RID p_map, Vector3 p_origin, Vector3 p_destination, bool p_optimize) const;
+    virtual Vector3 map_get_closest_point_to_segment(RID p_map, const Vector3 &p_from, const Vector3 &p_to, const bool p_use_collision = false) const;
+    virtual Vector3 map_get_closest_point(RID p_map, const Vector3 &p_point) const;
+    virtual Vector3 map_get_closest_point_normal(RID p_map, const Vector3 &p_point) const;
+    virtual RID map_get_closest_point_owner(RID p_map, const Vector3 &p_point) const;
 
 	virtual RID region_create() const;
 	COMMAND_2(region_set_map, RID, p_region, RID, p_map);
@@ -125,6 +129,8 @@ public:
 
 	virtual void set_active(bool p_active) const;
 	virtual void step(real_t p_delta_time);
+
+
 };
 
 #undef COMMAND_1

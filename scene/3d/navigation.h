@@ -67,7 +67,10 @@ public:
 	}
 
 	Vector<Vector3> get_simple_path(const Vector3 &p_start, const Vector3 &p_end, bool p_optimize = true);
-
+    Vector3 get_closest_point_to_segment(const Vector3 &p_from, const Vector3 &p_to, bool p_use_collision = false) const;
+    Vector3 get_closest_point(const Vector3 &p_point) const;
+    Vector3 get_closest_point_normal(const Vector3 &p_point) const;
+    RID get_closest_point_owner(const Vector3 &p_point) const;
 	Navigation();
 	~Navigation();
 };
