@@ -3199,6 +3199,21 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 			} break;
 			case GDScriptTokenizer::TK_CF_CONTINUE: {
 
+				BlockNode *upper_block = p_block;
+				bool inside_loop = false;
+				while (upper_block) {
+					if (upper_block->can_break) {
+						inside_loop = true;
+						break;
+					}
+					upper_block = upper_block->parent_block;
+				}
+
+				if (!inside_loop) {
+					_set_error("Unexpected keyword \"continue\" outside a loop.");
+					return;
+				}
+
 				_mark_line_as_safe(tokenizer->get_token_line());
 				tokenizer->advance();
 				ControlFlowNode *cf_continue = alloc_node<ControlFlowNode>();
