@@ -242,6 +242,7 @@ public:
 		Map<StringName, LocalVarNode *> variables;
 		bool has_return;
 		bool can_break;
+		bool can_continue;
 
 		Node *if_condition; //tiny hack to improve code completion on if () blocks
 
@@ -256,6 +257,7 @@ public:
 			parent_class = NULL;
 			has_return = false;
 			can_break = false;
+			can_continue = false;
 		}
 	};
 
