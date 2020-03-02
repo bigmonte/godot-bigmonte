@@ -146,7 +146,8 @@ static NSCursor *cursorFromSelector(SEL selector, SEL fallback = nil) {
 
 			get_key_modifier_state([event modifierFlags], k);
 			k->set_pressed(true);
-			k->set_scancode(KEY_PERIOD);
+			k->set_keycode(KEY_PERIOD);
+            k->set_physical_keycode(KEY_PERIOD);
 			k->set_echo([event isARepeat]);
 
 			OS_OSX::singleton->push_input(k);
@@ -600,7 +601,8 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 		ke.pressed = true;
 		ke.echo = false;
 		ke.raw = false; // IME input event
-		ke.scancode = 0;
+		ke.keycode = 0;
+        ke.physical_keycode = 0;
 		ke.unicode = codepoint;
 
 		push_to_key_event_buffer(ke);
@@ -1123,7 +1125,8 @@ static int remapKey(unsigned int key, unsigned int state) {
 				ke.osx_state = [event modifierFlags];
 				ke.pressed = true;
 				ke.echo = [event isARepeat];
-				ke.scancode = remapKey([event keyCode], [event modifierFlags]);
+				ke.keycode = remapKey([event keyCode], [event modifierFlags]);
+                ke.physical_keycode = translateKey([event keyCode]);
 				ke.raw = true;
 				ke.unicode = [characters characterAtIndex:i];
 
@@ -1135,7 +1138,8 @@ static int remapKey(unsigned int key, unsigned int state) {
 			ke.osx_state = [event modifierFlags];
 			ke.pressed = true;
 			ke.echo = [event isARepeat];
-			ke.scancode = remapKey([event keyCode], [event modifierFlags]);
+			ke.keycode = remapKey([event keyCode], [event modifierFlags]);
+            ke.physical_keycode = translateKey([event keyCode]);
 			ke.raw = false;
 			ke.unicode = 0;
 
@@ -1193,7 +1197,8 @@ static int remapKey(unsigned int key, unsigned int state) {
 		}
 
 		ke.osx_state = mod;
-		ke.scancode = remapKey(key, mod);
+		ke.keycode = remapKey(key, mod);
+        ke.physical_keycode = translateKey(key);
 		ke.unicode = 0;
 
 		push_to_key_event_buffer(ke);
@@ -1215,7 +1220,8 @@ static int remapKey(unsigned int key, unsigned int state) {
 				ke.osx_state = [event modifierFlags];
 				ke.pressed = false;
 				ke.echo = [event isARepeat];
-				ke.scancode = remapKey([event keyCode], [event modifierFlags]);
+				ke.keycode = remapKey([event keyCode], [event modifierFlags]);
+                ke.physical_keycode = translateKey([event keyCode]);
 				ke.raw = true;
 				ke.unicode = [characters characterAtIndex:i];
 
@@ -1227,7 +1233,8 @@ static int remapKey(unsigned int key, unsigned int state) {
 			ke.osx_state = [event modifierFlags];
 			ke.pressed = false;
 			ke.echo = [event isARepeat];
-			ke.scancode = remapKey([event keyCode], [event modifierFlags]);
+			ke.keycode = remapKey([event keyCode], [event modifierFlags]);
+            ke.physical_keycode = translateKey([event keyCode]);
 			ke.raw = true;
 			ke.unicode = 0;
 
@@ -2850,32 +2857,35 @@ void OS_OSX::process_key_events() {
 			get_key_modifier_state(ke.osx_state, k);
 			k->set_pressed(ke.pressed);
 			k->set_echo(ke.echo);
-			k->set_scancode(ke.scancode);
+			k->set_keycode(ke.keycode);
+            k->set_physical_keycode(ke.physical_keycode);
 			k->set_unicode(ke.unicode);
 
 			push_input(k);
 		} else {
 			// IME input
-			if ((i == 0 && ke.scancode == 0) || (i > 0 && key_event_buffer[i - 1].scancode == 0)) {
+			if ((i == 0 && ke.keycode == 0) || (i > 0 && key_event_buffer[i - 1].keycode == 0)) {
 				k.instance();
 
 				get_key_modifier_state(ke.osx_state, k);
 				k->set_pressed(ke.pressed);
 				k->set_echo(ke.echo);
-				k->set_scancode(0);
+				k->set_keycode(0);
+                k->set_physical_keycode(0);
 				k->set_unicode(ke.unicode);
 
 				push_input(k);
 			}
-			if (ke.scancode != 0) {
+			if (ke.keycode != 0) {
 				k.instance();
 
 				get_key_modifier_state(ke.osx_state, k);
 				k->set_pressed(ke.pressed);
 				k->set_echo(ke.echo);
-				k->set_scancode(ke.scancode);
+				k->set_keycode(ke.keycode);
+                k->set_physical_keycode(ke.physical_keycode);
 
-				if (i + 1 < key_event_pos && key_event_buffer[i + 1].scancode == 0) {
+				if (i + 1 < key_event_pos && key_event_buffer[i + 1].keycode == 0) {
 					k->set_unicode(key_event_buffer[i + 1].unicode);
 				}
 
