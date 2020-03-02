@@ -5919,7 +5919,7 @@ AnimationTrackEditor::AnimationTrackEditor() {
     function_text_mode_button->add_item(TTR("Name only"));
     function_text_mode_button->add_item(TTR("Name and arguments"));
     bottom_hb->add_child(function_text_mode_button);
-    function_text_mode_button->connect("item_selected", callable_mp(this, &AnimationTrackEditor::_function_text_mode_changed));
+    function_text_mode_button->connect("item_selected", this, "_function_text_mode_changed");
     function_text_mode_button->set_disabled(true);
 
 
