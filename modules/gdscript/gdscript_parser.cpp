@@ -3049,6 +3049,7 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 				cf_while->body = alloc_node<BlockNode>();
 				cf_while->body->parent_block = p_block;
+				cf_while->body->can_break = true;
 				p_block->sub_blocks.push_back(cf_while->body);
 
 				if (!_enter_indent_block(cf_while->body)) {
@@ -3167,6 +3168,7 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 				cf_for->body = alloc_node<BlockNode>();
 				cf_for->body->parent_block = p_block;
+				cf_for->body->can_break = true;
 				p_block->sub_blocks.push_back(cf_for->body);
 
 				if (!_enter_indent_block(cf_for->body)) {
@@ -3208,6 +3210,21 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 				}
 			} break;
 			case GDScriptTokenizer::TK_CF_BREAK: {
+
+				BlockNode *upper_block = p_block;
+				bool inside_loop = false;
+				while (upper_block) {
+					if (upper_block->can_break) {
+						inside_loop = true;
+						break;
+					}
+					upper_block = upper_block->parent_block;
+				}
+
+				if (!inside_loop) {
+					_set_error("Unexpected keyword \"break\" outside a loop.");
+					return;
+				}
 
 				_mark_line_as_safe(tokenizer->get_token_line());
 				tokenizer->advance();
