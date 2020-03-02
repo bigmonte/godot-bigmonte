@@ -1,0 +1,72 @@
+From 64ea4ec2ee83861c4a5ad429010cd54fdbced9d6 Mon Sep 17 00:00:00 2001
+From: bigmonte <34067397+bigmonte@users.noreply.github.com>
+Date: Mon, 2 Mar 2020 21:33:20 +0000
+Subject: [PATCH] Delay colorpick eyedrop preview using a timer [giarv] - 3.2
+
+---
+ scene/gui/color_picker.cpp | 17 +++++++++++------
+ scene/gui/color_picker.h   |  3 +++
+ 2 files changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/scene/gui/color_picker.cpp b/scene/gui/color_picker.cpp
+index b19c0fdf7..d530ad35c 100644
+--- a/scene/gui/color_picker.cpp
++++ b/scene/gui/color_picker.cpp
+@@ -585,17 +585,16 @@ void ColorPicker::_screen_input(const Ref<InputEvent> &p_event) {
+ 		screen->hide();
+ 	}
+ 
+-	Ref<InputEventMouseMotion> mev = p_event;
+-	if (mev.is_valid()) {
++    mouse_not_moving_pos = p_event;
++    mouse_not_moving_timer->start();
++    if (mouse_not_moving_pos.is_valid()) {
+ 		Viewport *r = get_tree()->get_root();
+-		if (!r->get_visible_rect().has_point(Point2(mev->get_global_position().x, mev->get_global_position().y)))
+-			return;
++        if (!r->get_visible_rect().has_point(Point2(mouse_not_moving_pos->get_global_position().x, mouse_not_moving_pos->get_global_position().y)))			return;
+ 
+ 		Ref<Image> img = r->get_texture()->get_data();
+ 		if (img.is_valid() && !img->empty()) {
+ 			img->lock();
+-			Vector2 ofs = mev->get_global_position() - r->get_visible_rect().get_position();
+-			Color c = img->get_pixel(ofs.x, r->get_visible_rect().size.height - ofs.y);
++            Vector2 ofs = mouse_not_moving_pos->get_global_position() - r->get_visible_rect().get_position();			Color c = img->get_pixel(ofs.x, r->get_visible_rect().size.height - ofs.y);
+ 			img->unlock();
+ 			set_pick_color(c);
+ 		}
+@@ -870,6 +869,12 @@ ColorPicker::ColorPicker() :
+ 	preset_container2->add_child(bt_add_preset);
+ 	bt_add_preset->set_tooltip(TTR("Add current color as a preset."));
+ 	bt_add_preset->connect("pressed", this, "_add_preset_pressed");
++
++    mouse_not_moving_timer = memnew(Timer);
++    add_child(mouse_not_moving_timer);
++    mouse_not_moving_timer->set_one_shot(true);
++    mouse_not_moving_timer->set_wait_time(0.1);
++    mouse_not_moving_timer->connect("timeout", this, "_mouse_not_moving_timer_timeout");
+ }
+ 
+ /////////////////
+diff --git a/scene/gui/color_picker.h b/scene/gui/color_picker.h
+index 49d36dfb3..3c653c86d 100644
+--- a/scene/gui/color_picker.h
++++ b/scene/gui/color_picker.h
+@@ -70,6 +70,8 @@ class ColorPicker : public BoxContainer {
+ 	Size2i ms;
+ 	bool text_is_constructor;
+ 	int presets_per_row;
++    Timer *mouse_not_moving_timer;
++    Ref<InputEventMouseMotion> mouse_not_moving_pos;
+ 
+ 	Color color;
+ 	bool raw_mode_enabled;
+@@ -103,6 +105,7 @@ class ColorPicker : public BoxContainer {
+ 	void _html_focus_exit();
+ 
+ protected:
++    void _mouse_not_moving_timer_timeout();
+ 	void _notification(int);
+ 	static void _bind_methods();
+ 
+
