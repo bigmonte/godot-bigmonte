@@ -346,4 +346,3 @@ compile_commands.json
 
 # Cppcheck
 *.cppcheck
-modules/godotsteam/sdk/
