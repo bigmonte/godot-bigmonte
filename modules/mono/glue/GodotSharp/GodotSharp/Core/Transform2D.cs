@@ -47,8 +47,7 @@ namespace Godot
             }
             set
             {
-                x = x.Normalized();
-                y = y.Normalized();
+                value /= Scale; // Value becomes what's called "delta_scale" in core.
                 x *= value.x;
                 y *= value.y;
             }
