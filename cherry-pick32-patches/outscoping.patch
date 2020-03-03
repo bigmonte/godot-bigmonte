@@ -1,0 +1,151 @@
+From 726a513a752dd9c36328c754a380ef98c675c88c Mon Sep 17 00:00:00 2001
+From: Jonas Bernemann <jbernemann@gmx.de>
+Date: Wed, 18 Dec 2019 20:34:51 +0100
+Subject: [PATCH] Prevent to create or choose file outside of scope
+
+Validate relative paths in file dialog to make sure that
+the provided path doesn't escape the scope of the
+file dialog. Before it was possible to create, save or open a
+file outside of res:// for example.
+---
+ core/os/dir_access.cpp        | 27 +++++++++++++++++++++++++
+ core/os/dir_access.h          |  2 ++
+ editor/editor_file_dialog.cpp | 37 +++++++++++++++++++++++++----------
+ editor/editor_file_dialog.h   |  1 +
+ 4 files changed, 57 insertions(+), 10 deletions(-)
+
+diff --git a/core/os/dir_access.cpp b/core/os/dir_access.cpp
+index e7496055ec5..4ae4e25654e 100644
+--- a/core/os/dir_access.cpp
++++ b/core/os/dir_access.cpp
+@@ -435,6 +435,33 @@ bool DirAccess::exists(String p_dir) {
+ 	return valid;
+ }
+ 
++bool DirAccess::check_access_scope(String p_dir) {
++	if (p_dir.is_rel_path())
++		p_dir = get_current_dir().plus_file(p_dir);
++	p_dir = p_dir.replace("\\", "/");
++
++	int pos = p_dir.find("://");
++	Vector<String> path_parts = p_dir.substr(pos == -1 ? 0 : pos + 3).split("/");
++	int depth = 0;
++	// If we are ACCESS_FILESYSTEM we count the root as a depth so we start at -1
++	if (_access_type == ACCESS_FILESYSTEM)
++		depth = -1;
++
++	for (int i = 0; i < path_parts.size(); i++) {
++		if (path_parts[i] == "..") {
++			depth--;
++			if (depth < 0) {
++				// We navigate up even we couldn't navigate up again -> we are escaping our scope
++				return false;
++			}
++		} else if (path_parts[i] != ".") {
++			depth++;
++		}
++	}
++
++	return true;
++}
++
+ DirAccess::DirAccess() {
+ 
+ 	_access_type = ACCESS_FILESYSTEM;
+diff --git a/core/os/dir_access.h b/core/os/dir_access.h
+index d3eb1e13f6e..e2b6d33cbf7 100644
+--- a/core/os/dir_access.h
++++ b/core/os/dir_access.h
+@@ -83,6 +83,8 @@ class DirAccess {
+ 	virtual Error make_dir_recursive(String p_dir);
+ 	virtual Error erase_contents_recursive(); //super dangerous, use with care!
+ 
++	virtual bool check_access_scope(String p_path);
++
+ 	virtual bool file_exists(String p_file) = 0;
+ 	virtual bool dir_exists(String p_dir) = 0;
+ 	static bool exists(String p_dir);
+diff --git a/editor/editor_file_dialog.cpp b/editor/editor_file_dialog.cpp
+index 7fc989b5e95..06992a84fc1 100644
+--- a/editor/editor_file_dialog.cpp
++++ b/editor/editor_file_dialog.cpp
+@@ -220,6 +220,10 @@ void EditorFileDialog::update_dir() {
+ }
+ 
+ void EditorFileDialog::_dir_entered(String p_dir) {
++	if (!dir_access->check_access_scope(p_dir)) {
++		patherr->popup_centered_minsize(Size2(250, 80) * EDSCALE);
++		return;
++	}
+ 
+ 	dir_access->change_dir(p_dir);
+ 	file->set_text("");
+@@ -363,6 +367,10 @@ void EditorFileDialog::_action_pressed() {
+ 	}
+ 
+ 	String f = dir_access->get_current_dir().plus_file(file->get_text());
++	if (!dir_access->check_access_scope(f)) {
++		patherr->popup_centered_minsize(Size2(250, 80) * EDSCALE);
++		return;
++	}
+ 
+ 	if ((mode == MODE_OPEN_ANY || mode == MODE_OPEN_FILE) && dir_access->file_exists(f)) {
+ 		_save_to_recent();
+@@ -1087,18 +1095,23 @@ EditorFileDialog::Access EditorFileDialog::get_access() const {
+ }
+ 
+ void EditorFileDialog::_make_dir_confirm() {
+-
+-	Error err = dir_access->make_dir(makedirname->get_text());
+-	if (err == OK) {
+-		dir_access->change_dir(makedirname->get_text());
+-		invalidate();
+-		update_filters();
+-		update_dir();
+-		_push_history();
+-		EditorFileSystem::get_singleton()->scan_changes(); //we created a dir, so rescan changes
+-	} else {
++	// Make sure that the path doesn't escape our scope
++	if (!dir_access->check_access_scope(makedirname->get_text())) {
+ 		mkdirerr->popup_centered_minsize(Size2(250, 50) * EDSCALE);
++	} else {
++		Error err = dir_access->make_dir(makedirname->get_text());
++		if (err == OK) {
++			dir_access->change_dir(makedirname->get_text());
++			invalidate();
++			update_filters();
++			update_dir();
++			_push_history();
++			EditorFileSystem::get_singleton()->scan_changes(); //we created a dir, so rescan changes
++		} else {
++			mkdirerr->popup_centered_minsize(Size2(250, 50) * EDSCALE);
++		}
+ 	}
++
+ 	makedirname->set_text(""); // reset label
+ }
+ 
+@@ -1720,6 +1733,10 @@ EditorFileDialog::EditorFileDialog() {
+ 	exterr->set_text(TTR("Must use a valid extension."));
+ 	add_child(exterr);
+ 
++	patherr = memnew(AcceptDialog);
++	patherr->set_text(TTR("The specified path is invalid."));
++	add_child(patherr);
++
+ 	update_filters();
+ 	update_dir();
+ 
+diff --git a/editor/editor_file_dialog.h b/editor/editor_file_dialog.h
+index af52f6af5b0..f71c72c04cd 100644
+--- a/editor/editor_file_dialog.h
++++ b/editor/editor_file_dialog.h
+@@ -111,6 +111,7 @@ class EditorFileDialog : public ConfirmationDialog {
+ 	OptionButton *filter;
+ 	AcceptDialog *mkdirerr;
+ 	AcceptDialog *exterr;
++	AcceptDialog *patherr;
+ 	DirAccess *dir_access;
+ 	ConfirmationDialog *confirm_save;
+ 	DependencyRemoveDialog *remove_dialog;
+
