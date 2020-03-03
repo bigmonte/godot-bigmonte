@@ -1,0 +1,25 @@
+From c9b86d54bfd762305ac48232f4a7f98c126fc37e Mon Sep 17 00:00:00 2001
+From: Andrea Catania <info@andreacatania.com>
+Date: Wed, 26 Feb 2020 14:50:22 +0100
+Subject: [PATCH] Fixed editor crash when the animation player has no root
+ assigned.
+
+---
+ editor/animation_track_editor.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/editor/animation_track_editor.cpp b/editor/animation_track_editor.cpp
+index 9742cadfd3d..8758fbcfc9e 100644
+--- a/editor/animation_track_editor.cpp
++++ b/editor/animation_track_editor.cpp
+@@ -2480,6 +2480,9 @@ void AnimationTrackEdit::_path_entered(const String &p_text) {
+ 
+ bool AnimationTrackEdit::_is_value_key_valid(const Variant &p_key_value, Variant::Type &r_valid_type) const {
+ 
++	if (root == nullptr)
++		return false;
++
+ 	RES res;
+ 	Vector<StringName> leftover_path;
+ 	Node *node = root->get_node_and_resource(animation->track_get_path(track), res, leftover_path);
+

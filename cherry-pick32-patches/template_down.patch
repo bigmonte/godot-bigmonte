@@ -1,0 +1,122 @@
+From b977cc61298ed3282771686e9bb96921c2c268f9 Mon Sep 17 00:00:00 2001
+From: Hugo Locurcio <hugo.locurcio@hugo.pro>
+Date: Sun, 26 Jan 2020 03:14:52 +0100
+Subject: [PATCH] Improve the editor export template downloader
+
+- Begin downloading as soon as the list of mirrors is fetched
+  if only one mirror is available.
+- Only show the help text if there's more than one mirror available.
+- Only show the progress bar once the download has started.
+- Hide the list of mirrors and the help text once the download
+  has started.
+- Make the window slightly shorter due to the low number of mirrors
+  available.
+---
+ editor/export_template_manager.cpp | 42 +++++++++++++++++++++++-------
+ editor/export_template_manager.h   |  2 ++
+ 2 files changed, 35 insertions(+), 9 deletions(-)
+
+diff --git a/editor/export_template_manager.cpp b/editor/export_template_manager.cpp
+index cb636f8cdcc..11a66d09d08 100644
+--- a/editor/export_template_manager.cpp
++++ b/editor/export_template_manager.cpp
+@@ -151,7 +151,6 @@ void ExportTemplateManager::_download_template(const String &p_version) {
+ 	template_download_progress->set_value(0);
+ 	request_mirror->request("https://godotengine.org/mirrorlist/" + p_version + ".json");
+ 	template_list_state->show();
+-	template_download_progress->show();
+ }
+ 
+ void ExportTemplateManager::_uninstall_template(const String &p_version) {
+@@ -379,16 +378,29 @@ void ExportTemplateManager::_http_download_mirror_completed(int p_status, int p_
+ 
+ 	Dictionary d = r;
+ 	if (d.has("mirrors")) {
+-		Array mirrors = d["mirrors"];
++		const Array mirrors = d["mirrors"];
++
+ 		for (int i = 0; i < mirrors.size(); i++) {
+-			Dictionary m = mirrors[i];
+-			ERR_CONTINUE(!m.has("url") || !m.has("name"));
++			const Dictionary mirror = mirrors[i];
++			ERR_CONTINUE(!mirror.has("url") || !mirror.has("name"));
+ 			LinkButton *lb = memnew(LinkButton);
+-			lb->set_text(m["name"]);
+-			lb->connect("pressed", this, "_begin_template_download", varray(m["url"]));
++			lb->set_text(mirror["name"]);
++			lb->connect("pressed", this, "_begin_template_download", varray(mirror["url"]));
+ 			template_list->add_child(lb);
+ 			mirrors_found = true;
+ 		}
++
++		if (mirrors.size() == 1) {
++			// Don't show the list and begin the download automatically if there's only one mirror available.
++			const Dictionary mirror = mirrors[0];
++			ERR_FAIL_COND(!mirror.has("url"));
++			_begin_template_download(mirror["url"]);
++		} else {
++			// Show the list of templates and help label again if they were hidden due to
++			// a previous download operation.
++			sc->show();
++			template_list_help->show();
++		}
+ 	}
+ 
+ 	if (!mirrors_found) {
+@@ -475,10 +487,16 @@ void ExportTemplateManager::_begin_template_download(const String &p_url) {
+ 	template_download_progress->set_value(0);
+ 	template_download_progress->show();
+ 	template_list_state->set_text(TTR("Connecting to Mirror..."));
++	// Hide the list of mirrors and the help label as they're no longer relevant at this point.
++	template_list_help->hide();
++	sc->hide();
+ }
+ 
+ void ExportTemplateManager::_window_template_downloader_closed() {
+ 	download_templates->cancel_request();
++	sc->hide();
++	template_list_help->hide();
++	template_download_progress->hide();
+ }
+ 
+ void ExportTemplateManager::_notification(int p_what) {
+@@ -719,16 +737,22 @@ ExportTemplateManager::ExportTemplateManager() {
+ 
+ 	VBoxContainer *vbc = memnew(VBoxContainer);
+ 	template_downloader->add_child(vbc);
+-	ScrollContainer *sc = memnew(ScrollContainer);
+-	sc->set_custom_minimum_size(Size2(400, 200) * EDSCALE);
+-	vbc->add_margin_child(TTR("Select mirror from list: (Shift+Click: Open in Browser)"), sc);
++	template_list_help = memnew(Label(TTR("Select mirror from list: (Shift+Click: Open in Browser)")));
++	// The template list help is only shown once mirrors have been fetched.
++	template_list_help->hide();
++	vbc->add_child(template_list_help);
++	sc = memnew(ScrollContainer);
++	sc->set_custom_minimum_size(Size2(400, 150) * EDSCALE);
+ 	template_list = memnew(VBoxContainer);
+ 	sc->add_child(template_list);
+ 	sc->set_enable_v_scroll(true);
+ 	sc->set_enable_h_scroll(false);
++	vbc->add_child(sc);
+ 	template_list_state = memnew(Label);
+ 	vbc->add_child(template_list_state);
+ 	template_download_progress = memnew(ProgressBar);
++	// The progress bar is only shown once a download starts.
++	template_download_progress->hide();
+ 	vbc->add_child(template_download_progress);
+ 
+ 	update_countdown = 0;
+diff --git a/editor/export_template_manager.h b/editor/export_template_manager.h
+index 96e61a6569f..496fed95b4f 100644
+--- a/editor/export_template_manager.h
++++ b/editor/export_template_manager.h
+@@ -43,6 +43,8 @@ class ExportTemplateVersion;
+ class ExportTemplateManager : public ConfirmationDialog {
+ 	GDCLASS(ExportTemplateManager, ConfirmationDialog);
+ 
++	ScrollContainer *sc;
++	Label *template_list_help;
+ 	AcceptDialog *template_downloader;
+ 	VBoxContainer *template_list;
+ 	Label *template_list_state;
+

@@ -213,48 +213,56 @@ void PopupMenu::_scroll(float p_factor, const Point2 &p_over) {
 	_gui_input(ie);
 }
 
+void PopupMenu::_move_selection(int p_from_position, int p_direction) {
+
+	int search_from = p_from_position + p_direction;
+	int direction = p_direction;
+	if (search_from >= items.size()) {
+		search_from = 0;
+		direction = -1;
+	} else if (search_from < 0) {
+		search_from = items.size() - 1;
+		direction = 1;
+	}
+
+	for (int i = search_from; i < items.size(); i += direction) {
+
+		if (i < 0 || i >= items.size())
+			continue;
+
+		if (!items[i].separator && !items[i].disabled) {
+
+			mouse_over = i;
+			emit_signal("id_focused", i);
+			int vseparation = get_constant("vseparation");
+			Ref<Font> font = get_font("font");
+			float dy = (vseparation + font->get_height()) * get_global_transform().get_scale().y;
+
+			Point2 new_selected_position = Point2(10, dy * mouse_over);
+			Point2 global_selected_position = (get_global_position() + new_selected_position) * get_global_transform().get_scale();
+			if (direction == 1 && global_selected_position.y + dy + vseparation > get_viewport_rect().size.y) {
+				set_position(Point2(get_position().x, get_viewport_rect().size.y - new_selected_position.y - dy - vseparation * 2));
+			} else if (direction == -1 && global_selected_position.y < 0) {
+				set_position(Point2(get_position().x, -new_selected_position.y));
+			}
+			update();
+			accept_event();
+
+			break;
+		}
+	}
+}
+
 void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 
 	if (p_event->is_action("ui_down") && p_event->is_pressed()) {
-
-		int search_from = mouse_over + 1;
-		if (search_from >= items.size())
-			search_from = 0;
-
-		for (int i = search_from; i < items.size(); i++) {
-
-			if (i < 0 || i >= items.size())
-				continue;
-
-			if (!items[i].separator && !items[i].disabled) {
-
-				mouse_over = i;
-				emit_signal("id_focused", i);
-				update();
-				accept_event();
-				break;
-			}
-		}
+		_move_selection(mouse_over, 1);
 	} else if (p_event->is_action("ui_up") && p_event->is_pressed()) {
-
-		int search_from = mouse_over - 1;
-		if (search_from < 0)
-			search_from = items.size() - 1;
-
-		for (int i = search_from; i >= 0; i--) {
-
-			if (i >= items.size())
-				continue;
-
-			if (!items[i].separator && !items[i].disabled) {
-
-				mouse_over = i;
-				emit_signal("id_focused", i);
-				update();
-				accept_event();
-				break;
-			}
-		}
+		_move_selection(mouse_over, -1);
+	} else if ((p_event->is_action("ui_page_down") || p_event->is_action("ui_end")) && p_event->is_pressed()) {
+		_move_selection(-1, -1);
+	} else if ((p_event->is_action("ui_page_up") || p_event->is_action("ui_home")) && p_event->is_pressed()) {
+		_move_selection(items.size(), 1);
 	} else if (p_event->is_action("ui_left") && p_event->is_pressed()) {
 
 		Node *n = get_parent();
@@ -387,7 +395,7 @@ void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 
 	Ref<InputEventKey> k = p_event;
 
-	if (allow_search && k.is_valid() && k->get_unicode()) {
+	if (allow_search && k.is_valid() && k->get_unicode() && k->is_pressed()) {
 
 		uint64_t now = OS::get_singleton()->get_ticks_msec();
 		uint64_t diff = now - search_time_msec;
@@ -401,20 +409,19 @@ void PopupMenu::_gui_input(const Ref<InputEvent> &p_event) {
 		if (String::chr(k->get_unicode()) != search_string)
 			search_string += String::chr(k->get_unicode());
 
-		for (int i = mouse_over + 1; i <= items.size(); i++) {
-			if (i == items.size()) {
-				if (mouse_over <= 0)
-					break;
-				else
-					i = 0;
-			}
+		String lowered_search_string = search_string.to_lower();
 
-			if (i == mouse_over)
+		for (int i = 0; i < items.size(); i++) {
+
+			int index = (mouse_over + 1 + i) % items.size();
+
+			if (mouse_over == index)
 				break;
 
-			if (items[i].text.findn(search_string) == 0) {
-				mouse_over = i;
-				emit_signal("id_focused", i);
+			if (items[index].text.to_lower().begins_with(lowered_search_string)) {
+
+				mouse_over = index;
+				emit_signal("id_focused", index);
 				update();
 				accept_event();
 				break;
@@ -1074,7 +1081,7 @@ bool PopupMenu::activate_item_by_event(const Ref<InputEvent> &p_event, bool p_fo
 	Ref<InputEventKey> k = p_event;
 
 	if (k.is_valid()) {
-		code = k->get_scancode();
+		code = k->get_keycode();
 		if (code == 0)
 			code = k->get_unicode();
 		if (k->get_control())
@@ -1500,7 +1507,12 @@ PopupMenu::PopupMenu() {
 	initial_button_mask = 0;
 	during_grabbed_click = false;
 
+#ifdef TOOLS_ENABLED
+	allow_search = Engine::get_singleton()->is_editor_hint();
+#else
 	allow_search = false;
+#endif
+
 	search_time_msec = 0;
 	search_string = "";
 

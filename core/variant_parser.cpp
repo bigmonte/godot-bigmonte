@@ -910,10 +910,10 @@ Error VariantParser::parse_value(Token &token, Variant &value, Stream *p_stream,
 				get_token(p_stream, token, line, r_err_str);
 				if (token.type == TK_IDENTIFIER) {
 					String name = token.value;
-					key->set_scancode(find_keycode(name));
+					key->set_keycode(find_keycode(name));
 				} else if (token.type == TK_NUMBER) {
 
-					key->set_scancode(token.value);
+					key->set_keycode(token.value);
 				} else {
 
 					r_err_str = "Expected string or integer for keycode";

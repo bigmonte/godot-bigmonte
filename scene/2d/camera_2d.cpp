@@ -54,6 +54,9 @@ void Camera2D::_update_scroll() {
 
 		Transform2D xform = get_camera_transform();
 
+		// Round origin to nearest whole pixel to prevent sprite jittering
+		xform.set_origin(xform.get_origin().round());
+
 		viewport->set_canvas_transform(xform);
 
 		Size2 screen_size = viewport->get_visible_rect().size;
@@ -128,9 +131,9 @@ Transform2D Camera2D::get_camera_transform() {
 			} else {
 
 				if (v_ofs < 0) {
-					camera_pos.y = new_camera_pos.y + screen_size.y * 0.5 * drag_margin[MARGIN_TOP] * v_ofs;
-				} else {
 					camera_pos.y = new_camera_pos.y + screen_size.y * 0.5 * drag_margin[MARGIN_BOTTOM] * v_ofs;
+				} else {
+					camera_pos.y = new_camera_pos.y + screen_size.y * 0.5 * drag_margin[MARGIN_TOP] * v_ofs;
 				}
 
 				v_offset_changed = false;

@@ -471,7 +471,7 @@ void CanvasItemEditor::_unhandled_key_input(const Ref<InputEvent> &p_ev) {
 	if (!is_visible_in_tree() || get_viewport()->gui_has_modal_stack())
 		return;
 
-	if (k->get_scancode() == KEY_CONTROL || k->get_scancode() == KEY_ALT || k->get_scancode() == KEY_SHIFT) {
+	if (k->get_keycode() == KEY_CONTROL || k->get_keycode() == KEY_ALT || k->get_keycode() == KEY_SHIFT) {
 		viewport->update();
 	}
 
@@ -1312,7 +1312,7 @@ bool CanvasItemEditor::_gui_input_pivot(const Ref<InputEvent> &p_event) {
 	// Drag the pivot (in pivot mode / with V key)
 	if (drag_type == DRAG_NONE) {
 		if ((b.is_valid() && b->is_pressed() && b->get_button_index() == BUTTON_LEFT && tool == TOOL_EDIT_PIVOT) ||
-				(k.is_valid() && k->is_pressed() && !k->is_echo() && k->get_scancode() == KEY_V)) {
+				(k.is_valid() && k->is_pressed() && !k->is_echo() && k->get_keycode() == KEY_V)) {
 			List<CanvasItem *> selection = _get_edited_canvas_items();
 
 			// Filters the selection with nodes that allow setting the pivot
@@ -1364,7 +1364,7 @@ bool CanvasItemEditor::_gui_input_pivot(const Ref<InputEvent> &p_event) {
 
 		// Confirm the pivot move
 		if ((b.is_valid() && !b->is_pressed() && b->get_button_index() == BUTTON_LEFT && tool == TOOL_EDIT_PIVOT) ||
-				(k.is_valid() && !k->is_pressed() && k->get_scancode() == KEY_V)) {
+				(k.is_valid() && !k->is_pressed() && k->get_keycode() == KEY_V)) {
 			_commit_canvas_item_state(drag_selection, TTR("Move pivot"));
 			drag_type = DRAG_NONE;
 			return true;
@@ -2078,7 +2078,7 @@ bool CanvasItemEditor::_gui_input_move(const Ref<InputEvent> &p_event) {
 
 	// Move the canvas items with the arrow keys
 	if (k.is_valid() && k->is_pressed() && (tool == TOOL_SELECT || tool == TOOL_MOVE) &&
-			(k->get_scancode() == KEY_UP || k->get_scancode() == KEY_DOWN || k->get_scancode() == KEY_LEFT || k->get_scancode() == KEY_RIGHT)) {
+			(k->get_keycode() == KEY_UP || k->get_keycode() == KEY_DOWN || k->get_keycode() == KEY_LEFT || k->get_keycode() == KEY_RIGHT)) {
 		if (!k->is_echo()) {
 			// Start moving the canvas items with the keyboard
 			drag_selection = _get_edited_canvas_items();
@@ -2104,13 +2104,13 @@ bool CanvasItemEditor::_gui_input_move(const Ref<InputEvent> &p_event) {
 			bool move_local_base_rotated = k->get_control() || k->get_metakey();
 
 			Vector2 dir;
-			if (k->get_scancode() == KEY_UP)
+			if (k->get_keycode() == KEY_UP)
 				dir += Vector2(0, -1);
-			else if (k->get_scancode() == KEY_DOWN)
+			else if (k->get_keycode() == KEY_DOWN)
 				dir += Vector2(0, 1);
-			else if (k->get_scancode() == KEY_LEFT)
+			else if (k->get_keycode() == KEY_LEFT)
 				dir += Vector2(-1, 0);
-			else if (k->get_scancode() == KEY_RIGHT)
+			else if (k->get_keycode() == KEY_RIGHT)
 				dir += Vector2(1, 0);
 			if (k->get_shift())
 				dir *= grid_step * Math::pow(2.0, grid_step_multiplier);
@@ -2166,7 +2166,7 @@ bool CanvasItemEditor::_gui_input_move(const Ref<InputEvent> &p_event) {
 	}
 
 	if (k.is_valid() && !k->is_pressed() && drag_type == DRAG_KEY_MOVE && tool == TOOL_SELECT &&
-			(k->get_scancode() == KEY_UP || k->get_scancode() == KEY_DOWN || k->get_scancode() == KEY_LEFT || k->get_scancode() == KEY_RIGHT)) {
+			(k->get_keycode() == KEY_UP || k->get_keycode() == KEY_DOWN || k->get_keycode() == KEY_LEFT || k->get_keycode() == KEY_RIGHT)) {
 		// Confirm canvas items move by arrow keys
 		if ((!Input::get_singleton()->is_key_pressed(KEY_UP)) &&
 				(!Input::get_singleton()->is_key_pressed(KEY_DOWN)) &&
@@ -2179,7 +2179,7 @@ bool CanvasItemEditor::_gui_input_move(const Ref<InputEvent> &p_event) {
 		return true;
 	}
 
-	return (k.is_valid() && (k->get_scancode() == KEY_UP || k->get_scancode() == KEY_DOWN || k->get_scancode() == KEY_LEFT || k->get_scancode() == KEY_RIGHT)); // Accept the key event in any case
+	return (k.is_valid() && (k->get_keycode() == KEY_UP || k->get_keycode() == KEY_DOWN || k->get_keycode() == KEY_LEFT || k->get_keycode() == KEY_RIGHT)); // Accept the key event in any case
 }
 
 bool CanvasItemEditor::_gui_input_select(const Ref<InputEvent> &p_event) {
@@ -2334,7 +2334,7 @@ bool CanvasItemEditor::_gui_input_select(const Ref<InputEvent> &p_event) {
 		}
 	}
 
-	if (k.is_valid() && k->is_pressed() && k->get_scancode() == KEY_ESCAPE && drag_type == DRAG_NONE && tool == TOOL_SELECT) {
+	if (k.is_valid() && k->is_pressed() && k->get_keycode() == KEY_ESCAPE && drag_type == DRAG_NONE && tool == TOOL_SELECT) {
 		// Unselect everything
 		editor_selection->clear();
 		viewport->update();
@@ -2798,6 +2798,7 @@ void CanvasItemEditor::_draw_ruler_tool() {
 		Color ruler_primary_color = get_color("accent_color", "Editor");
 		Color ruler_secondary_color = ruler_primary_color;
 		ruler_secondary_color.a = 0.5;
+		Color backdrop_color = Color(0, 0, 0, 0.7);
 
 		Point2 begin = (ruler_tool_origin - view_offset) * zoom;
 		Point2 end = snap_point(viewport->get_local_mouse_position() / zoom + view_offset) * zoom - view_offset * zoom;
@@ -2823,7 +2824,7 @@ void CanvasItemEditor::_draw_ruler_tool() {
 		Point2 text_pos = (begin + end) / 2 - Vector2(text_width / 2, text_height / 2);
 		text_pos.x = CLAMP(text_pos.x, text_width / 2, viewport->get_rect().size.x - text_width * 1.5);
 		text_pos.y = CLAMP(text_pos.y, text_height * 1.5, viewport->get_rect().size.y - text_height * 1.5);
-		viewport->draw_string(font, text_pos, vformat("%.2f px", length_vector.length()), font_color);
+		_draw_text_with_backdrop(font, text_pos, vformat("%.2f px", length_vector.length()), font_color, backdrop_color);
 
 		if (draw_secondary_lines) {
 			const float horizontal_angle_rad = atan2(length_vector.y, length_vector.x);
@@ -2833,16 +2834,16 @@ void CanvasItemEditor::_draw_ruler_tool() {
 
 			Point2 text_pos2 = text_pos;
 			text_pos2.x = begin.x < text_pos.x ? MIN(text_pos.x - text_width, begin.x - text_width / 2) : MAX(text_pos.x + text_width, begin.x - text_width / 2);
-			viewport->draw_string(font, text_pos2, vformat("%.2f px", length_vector.y), font_secondary_color);
+			_draw_text_with_backdrop(font, text_pos2, vformat("%.2f px", length_vector.y), font_secondary_color, backdrop_color);
 
 			Point2 v_angle_text_pos = Point2();
 			v_angle_text_pos.x = CLAMP(begin.x - angle_text_width / 2, angle_text_width / 2, viewport->get_rect().size.x - angle_text_width);
 			v_angle_text_pos.y = begin.y < end.y ? MIN(text_pos2.y - 2 * text_height, begin.y - text_height * 0.5) : MAX(text_pos2.y + text_height * 3, begin.y + text_height * 1.5);
-			viewport->draw_string(font, v_angle_text_pos, vformat("%d deg", vertical_angle), font_secondary_color);
+			_draw_text_with_backdrop(font, v_angle_text_pos, vformat("%d deg", vertical_angle), font_secondary_color, backdrop_color);
 
 			text_pos2 = text_pos;
 			text_pos2.y = end.y < text_pos.y ? MIN(text_pos.y - text_height * 2, end.y - text_height / 2) : MAX(text_pos.y + text_height * 2, end.y - text_height / 2);
-			viewport->draw_string(font, text_pos2, vformat("%.2f px", length_vector.x), font_secondary_color);
+			_draw_text_with_backdrop(font, text_pos2, vformat("%.2f px", length_vector.x), font_secondary_color, backdrop_color);
 
 			Point2 h_angle_text_pos = Point2();
 			h_angle_text_pos.x = CLAMP(end.x - angle_text_width / 2, angle_text_width / 2, viewport->get_rect().size.x - angle_text_width);
@@ -2859,7 +2860,7 @@ void CanvasItemEditor::_draw_ruler_tool() {
 					h_angle_text_pos.y = MIN(text_pos.y - height_multiplier * text_height, MIN(end.y - text_height * 0.5, text_pos2.y - height_multiplier * text_height));
 				}
 			}
-			viewport->draw_string(font, h_angle_text_pos, vformat("%d deg", horizontal_angle), font_secondary_color);
+			_draw_text_with_backdrop(font, h_angle_text_pos, vformat("%d deg", horizontal_angle), font_secondary_color, backdrop_color);
 
 			// Angle arcs
 			int arc_point_count = 8;
@@ -2897,17 +2898,17 @@ void CanvasItemEditor::_draw_ruler_tool() {
 			text_pos.y = CLAMP(text_pos.y, text_height * 2.5, viewport->get_rect().size.y - text_height / 2);
 
 			if (draw_secondary_lines) {
-				viewport->draw_string(font, text_pos, vformat("%.2f units", (length_vector / grid_step).length()), font_color);
+				_draw_text_with_backdrop(font, text_pos, vformat("%.2f units", (length_vector / grid_step).length()), font_color, backdrop_color);
 
 				Point2 text_pos2 = text_pos;
 				text_pos2.x = begin.x < text_pos.x ? MIN(text_pos.x - text_width, begin.x - text_width / 2) : MAX(text_pos.x + text_width, begin.x - text_width / 2);
-				viewport->draw_string(font, text_pos2, vformat("%d units", roundf(length_vector.y / grid_step.y)), font_secondary_color);
+				_draw_text_with_backdrop(font, text_pos2, vformat("%d units", roundf(length_vector.y / grid_step.y)), font_secondary_color, backdrop_color);
 
 				text_pos2 = text_pos;
 				text_pos2.y = end.y < text_pos.y ? MIN(text_pos.y - text_height * 2, end.y + text_height / 2) : MAX(text_pos.y + text_height * 2, end.y + text_height / 2);
-				viewport->draw_string(font, text_pos2, vformat("%d units", roundf(length_vector.x / grid_step.x)), font_secondary_color);
+				_draw_text_with_backdrop(font, text_pos2, vformat("%d units", roundf(length_vector.x / grid_step.x)), font_secondary_color, backdrop_color);
 			} else {
-				viewport->draw_string(font, text_pos, vformat("%d units", roundf((length_vector / grid_step).length())), font_color);
+				_draw_text_with_backdrop(font, text_pos, vformat("%d units", roundf((length_vector / grid_step).length())), font_color, backdrop_color);
 			}
 		}
 	} else {
@@ -3340,6 +3341,12 @@ void CanvasItemEditor::_draw_straight_line(Point2 p_from, Point2 p_to, Color p_c
 	if (points.size() >= 2) {
 		VisualServer::get_singleton()->canvas_item_add_line(ci, points[0], points[1], p_color);
 	}
+}
+
+void CanvasItemEditor::_draw_text_with_backdrop(Ref<Font> p_font, Point2 p_position, String p_string, Color p_font_color, Color p_backdrop_color) {
+	Vector2 string_size = p_font->get_string_size(p_string);
+	viewport->draw_rect(Rect2(p_position - Vector2(0, string_size.y * 0.8), string_size).grow_individual(1, -1, 1, 1), p_backdrop_color);
+	viewport->draw_string(p_font, p_position, p_string, p_font_color);
 }
 
 void CanvasItemEditor::_draw_axis() {

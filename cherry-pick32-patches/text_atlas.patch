@@ -1,0 +1,36 @@
+From 744c1fafff7fd63bfef4f26ae03711104690f3e8 Mon Sep 17 00:00:00 2001
+From: Maurizio Petrarota <mewuidev2@gmail.com>
+Date: Wed, 26 Feb 2020 14:35:57 +0100
+Subject: [PATCH] Fixed TextureAtlas import.
+
+---
+ editor/import/resource_importer_texture_atlas.cpp | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/editor/import/resource_importer_texture_atlas.cpp b/editor/import/resource_importer_texture_atlas.cpp
+index 00a25ec8869..f3f69cebf4e 100644
+--- a/editor/import/resource_importer_texture_atlas.cpp
++++ b/editor/import/resource_importer_texture_atlas.cpp
+@@ -143,8 +143,8 @@ static void _plot_triangle(Vector2 *vertices, const Vector2 &p_offset, bool p_tr
+ 
+ 				int px = xi, py = yi;
+ 				int sx = px, sy = py;
+-				sx = CLAMP(sx, 0, src_width);
+-				sy = CLAMP(sy, 0, src_height);
++				sx = CLAMP(sx, 0, src_width - 1);
++				sy = CLAMP(sy, 0, src_height - 1);
+ 				Color color = p_src_image->get_pixel(sx, sy);
+ 				if (p_transposed) {
+ 					SWAP(px, py);
+@@ -165,8 +165,8 @@ static void _plot_triangle(Vector2 *vertices, const Vector2 &p_offset, bool p_tr
+ 			for (int xi = (xf < width ? int(xf) : width - 1); xi >= (xt > 0 ? xt : 0); xi--) {
+ 				int px = xi, py = yi;
+ 				int sx = px, sy = py;
+-				sx = CLAMP(sx, 0, src_width);
+-				sy = CLAMP(sy, 0, src_height);
++				sx = CLAMP(sx, 0, src_width - 1);
++				sy = CLAMP(sy, 0, src_height - 1);
+ 				Color color = p_src_image->get_pixel(sx, sy);
+ 				if (p_transposed) {
+ 					SWAP(px, py);
+

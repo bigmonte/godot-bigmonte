@@ -2480,6 +2480,9 @@ void AnimationTrackEdit::_path_entered(const String &p_text) {
 
 bool AnimationTrackEdit::_is_value_key_valid(const Variant &p_key_value, Variant::Type &r_valid_type) const {
 
+	if (root == nullptr)
+		return false;
+
 	RES res;
 	Vector<StringName> leftover_path;
 	Node *node = root->get_node_and_resource(animation->track_get_path(track), res, leftover_path);
@@ -3385,6 +3388,11 @@ void AnimationTrackEditor::cleanup() {
 }
 
 void AnimationTrackEditor::_name_limit_changed() {
+	// called from conditional (dragging_hsize) at AnimationTimelineEdit::_gui_input through signals
+	if (bezier_edit->is_visible()) {
+		bezier_edit->update();
+		bezier_edit->update_play_position();
+	}
 
 	for (int i = 0; i < track_edits.size(); i++) {
 		track_edits[i]->update();

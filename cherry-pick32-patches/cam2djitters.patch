@@ -1,0 +1,24 @@
+From 33515a6ba030b49a8366fce59a5292102b073822 Mon Sep 17 00:00:00 2001
+From: "Forb.Jok" <forbjok@gmail.com>
+Date: Mon, 27 Jan 2020 21:16:04 +0100
+Subject: [PATCH] Fix Camera2D jitter
+
+---
+ scene/2d/camera_2d.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/scene/2d/camera_2d.cpp b/scene/2d/camera_2d.cpp
+index e9f8c5dff2c..b31f54d5804 100644
+--- a/scene/2d/camera_2d.cpp
++++ b/scene/2d/camera_2d.cpp
+@@ -54,6 +54,9 @@ void Camera2D::_update_scroll() {
+ 
+ 		Transform2D xform = get_camera_transform();
+ 
++		// Round origin to nearest whole pixel to prevent sprite jittering
++		xform.set_origin(xform.get_origin().round());
++
+ 		viewport->set_canvas_transform(xform);
+ 
+ 		Size2 screen_size = viewport->get_visible_rect().size;
+

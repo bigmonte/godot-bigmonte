@@ -1,0 +1,23 @@
+From 2c01cf54f8463fb22b4120c40087b4f0398b1704 Mon Sep 17 00:00:00 2001
+From: Phischermen <kevfischermen@gmail.com>
+Date: Wed, 20 Nov 2019 23:58:48 -0800
+Subject: [PATCH] Enabled concave collision detection with Areas in Bullet.
+
+---
+ modules/bullet/space_bullet.cpp | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/modules/bullet/space_bullet.cpp b/modules/bullet/space_bullet.cpp
+index e74c29769fc..a7aa0731517 100644
+--- a/modules/bullet/space_bullet.cpp
++++ b/modules/bullet/space_bullet.cpp
+@@ -726,9 +726,6 @@ void SpaceBullet::check_ghost_overlaps() {
+ 
+ 					other_body_shape = static_cast<btCollisionShape *>(otherObject->get_bt_shape(z));
+ 
+-					if (other_body_shape->isConcave())
+-						continue;
+-
+ 					btTransform other_shape_transform(otherObject->get_bt_shape_transform(z));
+ 					other_shape_transform.getOrigin() *= other_body_scale;
+

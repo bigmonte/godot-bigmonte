@@ -54,6 +54,7 @@ class InputDefault : public Input {
 	struct Action {
 		uint64_t physics_frame;
 		uint64_t idle_frame;
+		uint64_t timestamp;
 		bool pressed;
 		float strength;
 	};
@@ -64,15 +65,6 @@ class InputDefault : public Input {
 	bool emulate_mouse_from_touch;
 
 	int mouse_from_touch_index;
-
-	struct VibrationInfo {
-		float weak_magnitude;
-		float strong_magnitude;
-		float duration; // Duration in seconds
-		uint64_t timestamp;
-	};
-
-	Map<int, VibrationInfo> joy_vibration;
 
 	struct SpeedTrack {
 
@@ -122,6 +114,16 @@ class InputDefault : public Input {
 	int fallback_mapping;
 
 	CursorShape default_shape;
+
+protected:
+	struct VibrationInfo {
+		float weak_magnitude;
+		float strong_magnitude;
+		float duration; // Duration in seconds
+		uint64_t timestamp;
+	};
+
+	Map<int, VibrationInfo> joy_vibration;
 
 public:
 	enum HatMask {
@@ -187,13 +189,14 @@ private:
 	bool use_accumulated_input;
 
 public:
-	virtual bool is_key_pressed(int p_scancode) const;
+	virtual bool is_key_pressed(int p_keycode) const;
 	virtual bool is_mouse_button_pressed(int p_button) const;
 	virtual bool is_joy_button_pressed(int p_device, int p_button) const;
 	virtual bool is_action_pressed(const StringName &p_action) const;
 	virtual bool is_action_just_pressed(const StringName &p_action) const;
 	virtual bool is_action_just_released(const StringName &p_action) const;
 	virtual float get_action_strength(const StringName &p_action) const;
+	virtual float get_action_duration(const StringName &p_action) const;
 
 	virtual float get_joy_axis(int p_device, int p_axis) const;
 	String get_joy_name(int p_idx);

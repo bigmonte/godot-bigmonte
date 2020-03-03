@@ -1,0 +1,79 @@
+From 6dbea797225cc4d71d09f0758d04cd20fe48e124 Mon Sep 17 00:00:00 2001
+From: Jack Bond-Preston <jackbondpreston@outlook.com>
+Date: Wed, 29 Jan 2020 01:47:14 +0000
+Subject: [PATCH 1/2] Disable HTML5 one click deploy button if
+ misconfigured/templates missing
+
+The editor would previously have the HTML5 one click deploy button is always
+visible if an HTML5 preset has been defined, even if the templates are missing
+or if it's misconfigured.
+This disables the button in these cases and provides the error message output
+of can_export as the tooltip of the disabled button.
+Fixes #35592.
+---
+ editor/editor_run_native.cpp | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/editor/editor_run_native.cpp b/editor/editor_run_native.cpp
+index 4bbc111aeaa..be9468f3078 100644
+--- a/editor/editor_run_native.cpp
++++ b/editor/editor_run_native.cpp
+@@ -66,6 +66,32 @@ void EditorRunNative::_notification(int p_what) {
+ 	}
+ 
+ 	if (p_what == NOTIFICATION_PROCESS) {
++		for (int i = 0; i < EditorExport::get_singleton()->get_export_platform_count(); i++) {
++			Ref<EditorExportPlatform> eep = EditorExport::get_singleton()->get_export_platform(i);
++			Ref<EditorExportPreset> preset;
++
++			for (int i = 0; i < EditorExport::get_singleton()->get_export_preset_count(); i++) {
++				Ref<EditorExportPreset> ep = EditorExport::get_singleton()->get_export_preset(i);
++				if (ep->is_runnable() && ep->get_platform() == eep) {
++					preset = ep;
++					break;
++				}
++			}
++
++			if (preset.is_null()) {
++				menus[i]->set_disabled(true);
++			} else {
++				String can_export_error;
++				bool can_export_missing_templates;
++				if (eep->can_export(preset, can_export_error, can_export_missing_templates)) {
++					menus[i]->set_disabled(false);
++					menus[i]->set_tooltip("");
++				} else {
++					menus[i]->set_disabled(true);
++					menus[i]->set_tooltip(can_export_error);
++				}
++			}
++		}
+ 
+ 		bool changed = EditorExport::get_singleton()->poll_export_platforms() || first;
+ 
+
+From 207a49065a9a4dce0e20a819ad50502fedacd427 Mon Sep 17 00:00:00 2001
+From: Jack Bond-Preston <jackbondpreston@outlook.com>
+Date: Wed, 29 Jan 2020 02:23:20 +0000
+Subject: [PATCH 2/2] Fix inner loop shadowing outer loop's variable
+
+---
+ editor/editor_run_native.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/editor/editor_run_native.cpp b/editor/editor_run_native.cpp
+index be9468f3078..ec076f99368 100644
+--- a/editor/editor_run_native.cpp
++++ b/editor/editor_run_native.cpp
+@@ -70,8 +70,8 @@ void EditorRunNative::_notification(int p_what) {
+ 			Ref<EditorExportPlatform> eep = EditorExport::get_singleton()->get_export_platform(i);
+ 			Ref<EditorExportPreset> preset;
+ 
+-			for (int i = 0; i < EditorExport::get_singleton()->get_export_preset_count(); i++) {
+-				Ref<EditorExportPreset> ep = EditorExport::get_singleton()->get_export_preset(i);
++			for (int j = 0; j < EditorExport::get_singleton()->get_export_preset_count(); j++) {
++				Ref<EditorExportPreset> ep = EditorExport::get_singleton()->get_export_preset(j);
+ 				if (ep->is_runnable() && ep->get_platform() == eep) {
+ 					preset = ep;
+ 					break;
+

@@ -476,6 +476,15 @@ bool GridMapEditor::do_input_action(Camera *p_camera, const Point2 &p_point, boo
 		return true;
 	}
 
+	//	Temporary hide cell under mouse cursor when painting to show brush item on top of it
+	if (cell[0] != last_pointed_cell[0] || cell[1] != last_pointed_cell[1] || cell[2] != last_pointed_cell[2]) {
+		node->set_cell_item_visibility(last_pointed_cell[0], last_pointed_cell[1], last_pointed_cell[2], true);
+		node->set_cell_item_visibility(cell[0], cell[1], cell[2], false);
+	}
+
+	for (int i = 0; i < 3; ++i)
+		last_pointed_cell[i] = cell[i];
+
 	return false;
 }
 
@@ -752,7 +761,7 @@ bool GridMapEditor::forward_spatial_input_event(Camera *p_camera, const Ref<Inpu
 
 	if (k.is_valid()) {
 		if (k->is_pressed()) {
-			if (k->get_scancode() == KEY_ESCAPE) {
+			if (k->get_keycode() == KEY_ESCAPE) {
 
 				if (input_action == INPUT_PASTE) {
 					_clear_clipboard_data();
@@ -773,12 +782,12 @@ bool GridMapEditor::forward_spatial_input_event(Camera *p_camera, const Ref<Inpu
 
 			if (k->get_shift() && selection.active && input_action != INPUT_PASTE) {
 
-				if (k->get_scancode() == options->get_popup()->get_item_accelerator(options->get_popup()->get_item_index(MENU_OPTION_PREV_LEVEL))) {
+				if (k->get_keycode() == options->get_popup()->get_item_accelerator(options->get_popup()->get_item_index(MENU_OPTION_PREV_LEVEL))) {
 					selection.click[edit_axis]--;
 					_validate_selection();
 					return true;
 				}
-				if (k->get_scancode() == options->get_popup()->get_item_accelerator(options->get_popup()->get_item_index(MENU_OPTION_NEXT_LEVEL))) {
+				if (k->get_keycode() == options->get_popup()->get_item_accelerator(options->get_popup()->get_item_index(MENU_OPTION_NEXT_LEVEL))) {
 					selection.click[edit_axis]++;
 					_validate_selection();
 					return true;
@@ -842,7 +851,7 @@ void GridMapEditor::_sbox_input(const Ref<InputEvent> &p_ie) {
 
 	const Ref<InputEventKey> k = p_ie;
 
-	if (k.is_valid() && (k->get_scancode() == KEY_UP || k->get_scancode() == KEY_DOWN || k->get_scancode() == KEY_PAGEUP || k->get_scancode() == KEY_PAGEDOWN)) {
+	if (k.is_valid() && (k->get_keycode() == KEY_UP || k->get_keycode() == KEY_DOWN || k->get_keycode() == KEY_PAGEUP || k->get_keycode() == KEY_PAGEDOWN)) {
 
 		// Forward the key input to the ItemList so it can be scrolled
 		mesh_library_palette->call("_gui_input", k);
@@ -1359,6 +1368,9 @@ GridMapEditor::GridMapEditor(EditorNode *p_editor) {
 	edit_floor[0] = -1;
 	edit_floor[1] = -1;
 	edit_floor[2] = -1;
+
+	for (int i = 0; i < 3; i++)
+		last_pointed_cell[i] = -1;
 
 	cursor_visible = false;
 	selected_palette = -1;

@@ -73,10 +73,10 @@ InputDefault::SpeedTrack::SpeedTrack() {
 	reset();
 }
 
-bool InputDefault::is_key_pressed(int p_scancode) const {
+bool InputDefault::is_key_pressed(int p_keycode) const {
 
 	_THREAD_SAFE_METHOD_
-	return keys_pressed.has(p_scancode);
+	return keys_pressed.has(p_keycode);
 }
 
 bool InputDefault::is_mouse_button_pressed(int p_button) const {
@@ -133,6 +133,13 @@ float InputDefault::get_action_strength(const StringName &p_action) const {
 		return 0.0f;
 
 	return E->get().strength;
+}
+
+float InputDefault::get_action_duration(const StringName &p_action) const {
+	const Map<StringName, Action>::Element *E = action_state.find(p_action);
+	if (!E)
+		return 0;
+	return (OS::get_singleton()->get_ticks_usec() - E->get().timestamp) / 1000000.0;
 }
 
 float InputDefault::get_joy_axis(int p_device, int p_axis) const {
@@ -271,11 +278,11 @@ void InputDefault::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool 
 	_THREAD_SAFE_METHOD_
 
 	Ref<InputEventKey> k = p_event;
-	if (k.is_valid() && !k->is_echo() && k->get_scancode() != 0) {
+	if (k.is_valid() && !k->is_echo() && k->get_keycode() != 0) {
 		if (k->is_pressed())
-			keys_pressed.insert(k->get_scancode());
+			keys_pressed.insert(k->get_keycode());
 		else
-			keys_pressed.erase(k->get_scancode());
+			keys_pressed.erase(k->get_keycode());
 	}
 
 	Ref<InputEventMouseButton> mb = p_event;
@@ -430,6 +437,7 @@ void InputDefault::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool 
 				Action action;
 				action.physics_frame = Engine::get_singleton()->get_physics_frames();
 				action.idle_frame = Engine::get_singleton()->get_idle_frames();
+				action.timestamp = OS::get_singleton()->get_ticks_usec();
 				action.pressed = p_event->is_action_pressed(E->key());
 				action.strength = 0.f;
 				action_state[E->key()] = action;
