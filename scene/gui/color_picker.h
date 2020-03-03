@@ -70,8 +70,6 @@ private:
 	Size2i ms;
 	bool text_is_constructor;
 	int presets_per_row;
-    Timer *mouse_not_moving_timer;
-    Ref<InputEventMouseMotion> mouse_not_moving_pos;
 
 	Color color;
 	bool raw_mode_enabled;
@@ -105,7 +103,6 @@ private:
 	void _html_focus_exit();
 
 protected:
-    void _mouse_not_moving_timer_timeout();
 	void _notification(int);
 	static void _bind_methods();
 

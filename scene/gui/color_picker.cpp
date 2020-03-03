@@ -585,16 +585,17 @@ void ColorPicker::_screen_input(const Ref<InputEvent> &p_event) {
 		screen->hide();
 	}
 
-    mouse_not_moving_pos = p_event;
-    mouse_not_moving_timer->start();
-    if (mouse_not_moving_pos.is_valid()) {
+	Ref<InputEventMouseMotion> mev = p_event;
+	if (mev.is_valid()) {
 		Viewport *r = get_tree()->get_root();
-        if (!r->get_visible_rect().has_point(Point2(mouse_not_moving_pos->get_global_position().x, mouse_not_moving_pos->get_global_position().y)))			return;
+		if (!r->get_visible_rect().has_point(Point2(mev->get_global_position().x, mev->get_global_position().y)))
+			return;
 
 		Ref<Image> img = r->get_texture()->get_data();
 		if (img.is_valid() && !img->empty()) {
 			img->lock();
-            Vector2 ofs = mouse_not_moving_pos->get_global_position() - r->get_visible_rect().get_position();			Color c = img->get_pixel(ofs.x, r->get_visible_rect().size.height - ofs.y);
+			Vector2 ofs = mev->get_global_position() - r->get_visible_rect().get_position();
+			Color c = img->get_pixel(ofs.x, r->get_visible_rect().size.height - ofs.y);
 			img->unlock();
 			set_pick_color(c);
 		}
@@ -869,12 +870,6 @@ ColorPicker::ColorPicker() :
 	preset_container2->add_child(bt_add_preset);
 	bt_add_preset->set_tooltip(TTR("Add current color as a preset."));
 	bt_add_preset->connect("pressed", this, "_add_preset_pressed");
-
-    mouse_not_moving_timer = memnew(Timer);
-    add_child(mouse_not_moving_timer);
-    mouse_not_moving_timer->set_one_shot(true);
-    mouse_not_moving_timer->set_wait_time(0.1);
-    mouse_not_moving_timer->connect("timeout", this, "_mouse_not_moving_timer_timeout");
 }
 
 /////////////////
