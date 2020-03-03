@@ -1,0 +1,155 @@
+From d730b1865a2d768921e02fab219bb9e01a443b56 Mon Sep 17 00:00:00 2001
+From: Aaron Franke <arnfranke@yahoo.com>
+Date: Sat, 30 Nov 2019 02:20:13 -0500
+Subject: [PATCH] Improve scale setters to work with negative scales and add to
+ Basis
+
+---
+ core/math/basis.cpp                            | 13 +++++++++++++
+ core/math/basis.h                              |  1 +
+ core/math/transform_2d.cpp                     | 18 ++++++++++++++----
+ core/math/transform_2d.h                       | 10 +---------
+ .../glue/GodotSharp/GodotSharp/Core/Basis.cs   | 13 ++++++++++---
+ .../GodotSharp/GodotSharp/Core/Transform2D.cs  |  3 +--
+ 6 files changed, 40 insertions(+), 18 deletions(-)
+
+diff --git a/core/math/basis.cpp b/core/math/basis.cpp
+index d15cb71db96..87528850a5a 100644
+--- a/core/math/basis.cpp
++++ b/core/math/basis.cpp
+@@ -293,6 +293,19 @@ Vector3 Basis::get_scale() const {
+ 							  Vector3(elements[0][2], elements[1][2], elements[2][2]).length());
+ }
+
++void Basis::set_scale(const Vector3 &p_scale) {
++	Vector3 delta_scale = p_scale / get_scale();
++	elements[0][0] *= delta_scale.x;
++	elements[1][0] *= delta_scale.x;
++	elements[2][0] *= delta_scale.x;
++	elements[0][1] *= delta_scale.y;
++	elements[1][1] *= delta_scale.y;
++	elements[2][1] *= delta_scale.y;
++	elements[0][2] *= delta_scale.z;
++	elements[1][2] *= delta_scale.z;
++	elements[2][2] *= delta_scale.z;
++}
++
+ // Decomposes a Basis into a rotation-reflection matrix (an element of the group O(3)) and a positive scaling matrix as B = O.S.
+ // Returns the rotation-reflection matrix via reference argument, and scaling information is returned as a Vector3.
+ // This (internal) function is too specific and named too ugly to expose to users, and probably there's no need to do so.
+diff --git a/core/math/basis.h b/core/math/basis.h
+index 6c3a939d705..c3cc91d9bb2 100644
+--- a/core/math/basis.h
++++ b/core/math/basis.h
+@@ -111,6 +111,7 @@ class Basis {
+ 	Vector3 get_scale() const;
+ 	Vector3 get_scale_abs() const;
+ 	Vector3 get_scale_local() const;
++	void set_scale(const Vector3 &p_scale);
+
+ 	void set_axis_angle_scale(const Vector3 &p_axis, real_t p_phi, const Vector3 &p_scale);
+ 	void set_euler_scale(const Vector3 &p_euler, const Vector3 &p_scale);
+diff --git a/core/math/transform_2d.cpp b/core/math/transform_2d.cpp
+index f28b664e465..7d5caba19cd 100644
+--- a/core/math/transform_2d.cpp
++++ b/core/math/transform_2d.cpp
+@@ -90,6 +90,17 @@ void Transform2D::set_rotation(real_t p_rot) {
+ 	set_scale(scale);
+ }
+
++void Transform2D::set_rotation_and_scale(real_t p_rot, const Size2 &p_scale) {
++	real_t cr = Math::cos(p_rot);
++	real_t sr = Math::sin(p_rot);
++	elements[0][0] = cr;
++	elements[0][1] = sr;
++	elements[1][0] = -sr;
++	elements[1][1] = cr;
++	elements[0] *= p_scale.x;
++	elements[1] *= p_scale.y;
++}
++
+ Transform2D::Transform2D(real_t p_rot, const Vector2 &p_pos) {
+
+ 	real_t cr = Math::cos(p_rot);
+@@ -107,10 +118,9 @@ Size2 Transform2D::get_scale() const {
+ }
+
+ void Transform2D::set_scale(const Size2 &p_scale) {
+-	elements[0].normalize();
+-	elements[1].normalize();
+-	elements[0] *= p_scale.x;
+-	elements[1] *= p_scale.y;
++	Size2 delta_scale = p_scale / get_scale();
++	elements[0] *= delta_scale.x;
++	elements[1] *= delta_scale.y;
+ }
+
+ void Transform2D::scale(const Size2 &p_scale) {
+diff --git a/core/math/transform_2d.h b/core/math/transform_2d.h
+index 367f697ccf4..1572b232ee5 100644
+--- a/core/math/transform_2d.h
++++ b/core/math/transform_2d.h
+@@ -71,7 +71,7 @@ struct Transform2D {
+
+ 	void set_rotation(real_t p_rot);
+ 	real_t get_rotation() const;
+-	_FORCE_INLINE_ void set_rotation_and_scale(real_t p_rot, const Size2 &p_scale);
++	void set_rotation_and_scale(real_t p_rot, const Size2 &p_scale);
+ 	void rotate(real_t p_phi);
+
+ 	void scale(const Size2 &p_scale);
+@@ -177,14 +177,6 @@ Rect2 Transform2D::xform(const Rect2 &p_rect) const {
+ 	return new_rect;
+ }
+
+-void Transform2D::set_rotation_and_scale(real_t p_rot, const Size2 &p_scale) {
+-
+-	elements[0][0] = Math::cos(p_rot) * p_scale.x;
+-	elements[1][1] = Math::cos(p_rot) * p_scale.y;
+-	elements[1][0] = -Math::sin(p_rot) * p_scale.y;
+-	elements[0][1] = Math::sin(p_rot) * p_scale.x;
+-}
+-
+ Rect2 Transform2D::xform_inv(const Rect2 &p_rect) const {
+
+ 	Vector2 ends[4] = {
+diff --git a/modules/mono/glue/GodotSharp/GodotSharp/Core/Basis.cs b/modules/mono/glue/GodotSharp/GodotSharp/Core/Basis.cs
+index c5e62b77c83..86f6fc573bd 100644
+--- a/modules/mono/glue/GodotSharp/GodotSharp/Core/Basis.cs
++++ b/modules/mono/glue/GodotSharp/GodotSharp/Core/Basis.cs
+@@ -86,11 +86,18 @@ public Vector3 Scale
+                 real_t detSign = Mathf.Sign(Determinant());
+                 return detSign * new Vector3
+                 (
+-                    new Vector3(this.Row0[0], this.Row1[0], this.Row2[0]).Length(),
+-                    new Vector3(this.Row0[1], this.Row1[1], this.Row2[1]).Length(),
+-                    new Vector3(this.Row0[2], this.Row1[2], this.Row2[2]).Length()
++                    Column0.Length(),
++                    Column1.Length(),
++                    Column2.Length()
+                 );
+             }
++            set
++            {
++                value /= Scale; // Value becomes what's called "delta_scale" in core.
++                Column0 *= value.x;
++                Column1 *= value.y;
++                Column2 *= value.z;
++            }
+         }
+
+         public Vector3 this[int columnIndex]
+diff --git a/modules/mono/glue/GodotSharp/GodotSharp/Core/Transform2D.cs b/modules/mono/glue/GodotSharp/GodotSharp/Core/Transform2D.cs
+index 77ea3e58302..e5944fd4536 100644
+--- a/modules/mono/glue/GodotSharp/GodotSharp/Core/Transform2D.cs
++++ b/modules/mono/glue/GodotSharp/GodotSharp/Core/Transform2D.cs
+@@ -47,8 +47,7 @@ public Vector2 Scale
+             }
+             set
+             {
+-                x = x.Normalized();
+-                y = y.Normalized();
++                value /= Scale; // Value becomes what's called "delta_scale" in core.
+                 x *= value.x;
+                 y *= value.y;
+             }
