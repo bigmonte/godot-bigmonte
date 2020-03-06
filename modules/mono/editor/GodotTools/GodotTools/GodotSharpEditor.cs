@@ -61,7 +61,7 @@ namespace GodotTools
                     {
                         Guid = guid,
                         PathRelativeToSolution = name + ".csproj",
-                        Configs = new List<string> { "Debug", "Release", "Tools" }
+                        Configs = new List<string> { "Tools" }
                     };
 
                     solution.AddNewProject(name, projectInfo);
