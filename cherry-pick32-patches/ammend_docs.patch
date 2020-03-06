@@ -1,0 +1,47 @@
+From b7dbf41aa5d25c2ed9db50f989065ec8721b6144 Mon Sep 17 00:00:00 2001
+From: Umang Kalra <umangkalra10@gmail.com>
+Date: Fri, 6 Mar 2020 23:14:14 +0530
+Subject: [PATCH] Edited the KinematicBody and KinematicBody2D docs Changes
+ made as requested.
+
+Explained the reason why move_and_slide should be sued in _physics_process
+Final Changes
+
+Edited the docs as per the changes requested.
+Edits in docs
+
+Made some changes
+---
+ doc/classes/KinematicBody.xml   | 3 ++-
+ doc/classes/KinematicBody2D.xml | 3 ++-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/doc/classes/KinematicBody.xml b/doc/classes/KinematicBody.xml
+index 2cf49f417c4..4ccbc679bf4 100644
+--- a/doc/classes/KinematicBody.xml
++++ b/doc/classes/KinematicBody.xml
+@@ -105,7 +105,8 @@
+ 			</argument>
+ 			<description>
+ 				Moves the body along a vector. If the body collides with another, it will slide along the other body rather than stop immediately. If the other body is a [KinematicBody] or [RigidBody], it will also be affected by the motion of the other body. You can use this to make moving or rotating platforms, or to make nodes push other nodes.
+-				[code]linear_velocity[/code] is the velocity vector (typically meters per second). Unlike in [method move_and_collide], you should [i]not[/i] multiply it by [code]delta[/code] — the physics engine handles applying the velocity.
++				This method should be used in [method Node._physics_process] (or in a method called by [method Node._physics_process]), as it uses the physics step's [code]delta[/code] value automatically in calculations. Otherwise, the simulation will run at an incorrect speed.
++				[code]linear_velocity[/code] is the velocity vector (typically meters per second). Unlike in [method move_and_collide], you should [i]not[/i] multiply it by [code]delta[/code] — the physics engine handles applying the velocity. 
+ 				[code]up_direction[/code] is the up direction, used to determine what is a wall and what is a floor or a ceiling. If set to the default value of [code]Vector3(0, 0, 0)[/code], everything is considered a wall.
+ 				If [code]stop_on_slope[/code] is [code]true[/code], body will not slide on slopes if you include gravity in [code]linear_velocity[/code].
+ 				If the body collides, it will change direction a maximum of [code]max_slides[/code] times before it stops.
+diff --git a/doc/classes/KinematicBody2D.xml b/doc/classes/KinematicBody2D.xml
+index 58d7b1f8319..6b2bbeb895f 100644
+--- a/doc/classes/KinematicBody2D.xml
++++ b/doc/classes/KinematicBody2D.xml
+@@ -103,7 +103,8 @@
+ 			</argument>
+ 			<description>
+ 				Moves the body along a vector. If the body collides with another, it will slide along the other body rather than stop immediately. If the other body is a [KinematicBody2D] or [RigidBody2D], it will also be affected by the motion of the other body. You can use this to make moving or rotating platforms, or to make nodes push other nodes.
+-				[code]linear_velocity[/code] is the velocity vector in pixels per second. Unlike in [method move_and_collide], you should [i]not[/i] multiply it by [code]delta[/code] — the physics engine handles applying the velocity.
++				This method should be used in [method Node._physics_process] (or in a method called by [method Node._physics_process]), as it uses the physics step's [code]delta[/code] value automatically in calculations. Otherwise, the simulation will run at an incorrect speed.
++				[code]linear_velocity[/code] is the velocity vector in pixels per second. Unlike in [method move_and_collide], you should [i]not[/i] multiply it by [code]delta[/code] — the physics engine handles applying the velocity. 
+ 				[code]up_direction[/code] is the up direction, used to determine what is a wall and what is a floor or a ceiling. If set to the default value of [code]Vector2(0, 0)[/code], everything is considered a wall. This is useful for topdown games.
+ 				If [code]stop_on_slope[/code] is [code]true[/code], body will not slide on slopes when you include gravity in [code]linear_velocity[/code] and the body is standing still.
+ 				If the body collides, it will change direction a maximum of [code]max_slides[/code] times before it stops.
+

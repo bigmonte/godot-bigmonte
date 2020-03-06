@@ -1,0 +1,24 @@
+From 0076ad638977b3e97afd5fd4028f1c8f06533a3e Mon Sep 17 00:00:00 2001
+From: Andrea Catania <info@andreacatania.com>
+Date: Fri, 6 Mar 2020 14:35:22 +0100
+Subject: [PATCH] Added error to notify that the Navigation triangle merging
+ failed due to incorrect parameter.
+
+Added error to notify that the Navigation triangle merging failed due to incorrect parameter.
+---
+ modules/gdnavigation/nav_map.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules/gdnavigation/nav_map.cpp b/modules/gdnavigation/nav_map.cpp
+index c3880f89b66..13f3823b5a3 100644
+--- a/modules/gdnavigation/nav_map.cpp
++++ b/modules/gdnavigation/nav_map.cpp
+@@ -657,6 +657,7 @@ void NavMap::sync() {
+ 					connection->get().B->edges[connection->get().B_edge].other_edge = connection->get().A_edge;
+ 				} else {
+ 					// The edge is already connected with another edge, skip.
++					ERR_PRINT("I'm trying to merge a navigation mesh triangle edge with another one already merged. This happens when the `Navigation` `cell_size` is different from the one used to generate the navigation mesh. This will cause navigation problem.");
+ 				}
+ 			}
+ 		}
+
