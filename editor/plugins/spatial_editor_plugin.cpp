@@ -6129,8 +6129,8 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 	snap_dialog = memnew(ConfirmationDialog);
 	snap_dialog->set_title(TTR("Snap Settings"));
 	add_child(snap_dialog);
-	snap_dialog->connect("confirmed", callable_mp(this, &SpatialEditor::_snap_changed));
-	snap_dialog->get_cancel()->connect("pressed", callable_mp(this, &SpatialEditor::_snap_update));
+	snap_dialog->connect("confirmed", this, "_snap_changed");
+	snap_dialog->get_cancel()->connect("pressed", this, "_snap_update");
 
 	VBoxContainer *snap_dialog_vbc = memnew(VBoxContainer);
 	snap_dialog->add_child(snap_dialog_vbc);
