@@ -683,7 +683,6 @@ void Viewport::_notification(int p_what) {
 			}
 
 		} break;
-		case SceneTree::NOTIFICATION_WM_MOUSE_EXIT:
 		case SceneTree::NOTIFICATION_WM_FOCUS_OUT: {
 
 			_drop_physics_mouseover();
