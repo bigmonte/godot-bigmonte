@@ -215,8 +215,7 @@ if (env_base['target'] == 'debug'):
     # http://scons.org/doc/production/HTML/scons-user/ch06s04.html
     env_base.SetOption('implicit_cache', 1)
 
-if (env_base['no_editor_splash']):
-    env_base.Append(CPPDEFINES=['NO_EDITOR_SPLASH'])
+env_base.Append(CPPDEFINES=['NO_EDITOR_SPLASH'])
 
 if not env_base['deprecated']:
     env_base.Append(CPPDEFINES=['DISABLE_DEPRECATED'])
