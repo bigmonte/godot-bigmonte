@@ -3751,7 +3751,10 @@ StringName EditorNode::get_object_custom_type_name(const Object *p_object) const
 	return StringName();
 }
 
-Ref<ImageTexture> EditorNode::_load_custom_class_icon(const String &p_path) const {
+Ref<ImageTexture> EditorNode::_load_custom_class_icon(const String &p_path) {
+	if (icon_custom_cache.has(p_path)) {
+		return icon_custom_cache[p_path];
+	}
 	if (p_path.length()) {
 		Ref<Image> img = memnew(Image);
 		Error err = ImageLoader::load_image(p_path, img);
@@ -3759,13 +3762,14 @@ Ref<ImageTexture> EditorNode::_load_custom_class_icon(const String &p_path) cons
 			Ref<ImageTexture> icon = memnew(ImageTexture);
 			img->resize(16 * EDSCALE, 16 * EDSCALE, Image::INTERPOLATE_LANCZOS);
 			icon->create_from_image(img);
+			icon_custom_cache.insert(p_path, icon);
 			return icon;
 		}
 	}
 	return NULL;
 }
 
-Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p_fallback) const {
+Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p_fallback) {
 	ERR_FAIL_COND_V(!p_object || !gui_base, NULL);
 
 	Ref<Script> script = p_object->get_script();
@@ -3810,7 +3814,7 @@ Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p
 	return NULL;
 }
 
-Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_fallback) const {
+Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_fallback) {
 	ERR_FAIL_COND_V_MSG(p_class.empty(), NULL, "Class name cannot be empty.");
 
 	if (gui_base->has_icon(p_class, "EditorIcons")) {
