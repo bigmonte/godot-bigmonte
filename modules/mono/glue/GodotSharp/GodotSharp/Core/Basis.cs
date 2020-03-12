@@ -86,10 +86,17 @@ namespace Godot
                 real_t detSign = Mathf.Sign(Determinant());
                 return detSign * new Vector3
                 (
-                    new Vector3(this.Row0[0], this.Row1[0], this.Row2[0]).Length(),
-                    new Vector3(this.Row0[1], this.Row1[1], this.Row2[1]).Length(),
-                    new Vector3(this.Row0[2], this.Row1[2], this.Row2[2]).Length()
+                    Column0.Length(),
+                    Column1.Length(),
+                    Column2.Length()
                 );
+            }
+            set
+            {
+                value /= Scale; // Value becomes what's called "delta_scale" in core.
+                Column0 *= value.x;
+                Column1 *= value.y;
+                Column2 *= value.z;
             }
         }
 

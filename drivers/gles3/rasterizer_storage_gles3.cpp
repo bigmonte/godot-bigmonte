@@ -1350,8 +1350,8 @@ void RasterizerStorageGLES3::texture_set_flags(RID p_texture, uint32_t p_flags) 
 	Texture *texture = texture_owner.get(p_texture);
 	ERR_FAIL_COND(!texture);
 	if (texture->render_target) {
-
-		p_flags &= VS::TEXTURE_FLAG_FILTER; //can change only filter
+		// only allow filter and repeat flags for render target (ie. viewport) textures
+		p_flags &= (VS::TEXTURE_FLAG_FILTER | VS::TEXTURE_FLAG_REPEAT);
 	}
 
 	bool had_mipmaps = texture->flags & VS::TEXTURE_FLAG_MIPMAPS;
@@ -1854,9 +1854,6 @@ void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_ra
 
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sky->irradiance, 0);
 
-		int irradiance_size = GLOBAL_GET("rendering/quality/reflections/irradiance_max_size");
-		int upscale_size = MIN(int(previous_power_of_2(irradiance_size)), p_radiance_size);
-
 		GLuint tmp_fb2;
 		GLuint tmp_tex;
 		{
@@ -1865,10 +1862,10 @@ void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_ra
 			glBindFramebuffer(GL_FRAMEBUFFER, tmp_fb2);
 			glGenTextures(1, &tmp_tex);
 			glBindTexture(GL_TEXTURE_2D, tmp_tex);
-			glTexImage2D(GL_TEXTURE_2D, 0, internal_format, upscale_size, 2.0 * upscale_size, 0, format, type, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, internal_format, p_radiance_size, 2.0 * p_radiance_size, 0, format, type, NULL);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tmp_tex, 0);
 			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 #ifdef DEBUG_ENABLED
 			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			ERR_FAIL_COND(status != GL_FRAMEBUFFER_COMPLETE);
@@ -1885,8 +1882,9 @@ void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_ra
 		shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::SOURCE_MIP_LEVEL, MAX(Math::floor(Math::log(float(texture->width)) / Math::log(2.0f)) - 10.0f, 0.0f));
 
 		// Compute Irradiance for a large texture, specified by radiance size and then pull out a low mipmap corresponding to 32x32
+		int vp_size = p_radiance_size;
 		for (int i = 0; i < 2; i++) {
-			glViewport(0, i * upscale_size, upscale_size, upscale_size);
+			glViewport(0, i * vp_size, vp_size, vp_size);
 			glBindVertexArray(resources.quadie_array);
 
 			shaders.cubemap_filter.set_uniform(CubemapFilterShaderGLES3::Z_FLIP, i > 0);
@@ -1905,7 +1903,7 @@ void RasterizerStorageGLES3::sky_set_texture(RID p_sky, RID p_panorama, int p_ra
 
 		shaders.copy.set_conditional(CopyShaderGLES3::USE_LOD, true);
 		shaders.copy.bind();
-		shaders.copy.set_uniform(CopyShaderGLES3::MIP_LEVEL, MAX(Math::floor(Math::log(float(upscale_size)) / Math::log(2.0f)) - 5.0f, 0.0f)); // Mip level that corresponds to a 32x32 texture
+		shaders.copy.set_uniform(CopyShaderGLES3::MIP_LEVEL, MAX(Math::floor(Math::log(float(p_radiance_size)) / Math::log(2.0f)) - 5.0f, 0.0f)); // Mip level that corresponds to a 32x32 texture
 
 		glViewport(0, 0, size, size * 2.0);
 		glBindVertexArray(resources.quadie_array);
@@ -4718,7 +4716,7 @@ void RasterizerStorageGLES3::multimesh_instance_set_color(RID p_multimesh, int p
 	ERR_FAIL_COND(!multimesh);
 	ERR_FAIL_INDEX(p_index, multimesh->size);
 	ERR_FAIL_COND(multimesh->color_format == VS::MULTIMESH_COLOR_NONE);
-	ERR_FAIL_INDEX(multimesh->color_format, VS::MULTIMESH_COLOR_MAX);
+	ERR_FAIL_INDEX(multimesh->color_format, VS::MULTIMESH_COLOR_FLOAT);
 
 	int stride = multimesh->color_floats + multimesh->xform_floats + multimesh->custom_data_floats;
 	float *dataptr = &multimesh->data.write[stride * p_index + multimesh->xform_floats];
@@ -4752,7 +4750,7 @@ void RasterizerStorageGLES3::multimesh_instance_set_custom_data(RID p_multimesh,
 	ERR_FAIL_COND(!multimesh);
 	ERR_FAIL_INDEX(p_index, multimesh->size);
 	ERR_FAIL_COND(multimesh->custom_data_format == VS::MULTIMESH_CUSTOM_DATA_NONE);
-	ERR_FAIL_INDEX(multimesh->custom_data_format, VS::MULTIMESH_CUSTOM_DATA_MAX);
+	ERR_FAIL_INDEX(multimesh->custom_data_format, VS::MULTIMESH_CUSTOM_DATA_FLOAT);
 
 	int stride = multimesh->color_floats + multimesh->xform_floats + multimesh->custom_data_floats;
 	float *dataptr = &multimesh->data.write[stride * p_index + multimesh->xform_floats + multimesh->color_floats];
@@ -4841,7 +4839,7 @@ Color RasterizerStorageGLES3::multimesh_instance_get_color(RID p_multimesh, int 
 	ERR_FAIL_COND_V(!multimesh, Color());
 	ERR_FAIL_INDEX_V(p_index, multimesh->size, Color());
 	ERR_FAIL_COND_V(multimesh->color_format == VS::MULTIMESH_COLOR_NONE, Color());
-	ERR_FAIL_INDEX_V(multimesh->color_format, VS::MULTIMESH_COLOR_MAX, Color());
+	ERR_FAIL_INDEX_V(multimesh->color_format, VS::MULTIMESH_COLOR_FLOAT, Color());
 
 	int stride = multimesh->color_floats + multimesh->xform_floats + multimesh->custom_data_floats;
 	float *dataptr = &multimesh->data.write[stride * p_index + multimesh->xform_floats];
@@ -4875,7 +4873,7 @@ Color RasterizerStorageGLES3::multimesh_instance_get_custom_data(RID p_multimesh
 	ERR_FAIL_COND_V(!multimesh, Color());
 	ERR_FAIL_INDEX_V(p_index, multimesh->size, Color());
 	ERR_FAIL_COND_V(multimesh->custom_data_format == VS::MULTIMESH_CUSTOM_DATA_NONE, Color());
-	ERR_FAIL_INDEX_V(multimesh->custom_data_format, VS::MULTIMESH_CUSTOM_DATA_MAX, Color());
+	ERR_FAIL_INDEX_V(multimesh->custom_data_format, VS::MULTIMESH_CUSTOM_DATA_FLOAT, Color());
 
 	int stride = multimesh->color_floats + multimesh->xform_floats + multimesh->custom_data_floats;
 	float *dataptr = &multimesh->data.write[stride * p_index + multimesh->xform_floats + multimesh->color_floats];

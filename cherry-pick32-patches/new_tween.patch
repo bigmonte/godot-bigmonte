@@ -1,0 +1,119 @@
+From dbdc8e28c1ca6a87a07719dcab42c6fccfad39f4 Mon Sep 17 00:00:00 2001
+From: Hugo Locurcio <hugo.locurcio@hugo.pro>
+Date: Wed, 11 Mar 2020 23:19:47 +0100
+Subject: [PATCH] Add `Tween.interpolate()` as a low-level tweening option
+
+This can be used as an alternative to `Tween.interpolate_property()`
+when additional control is needed.
+
+This closes https://github.com/godotengine/godot-proposals/issues/36.
+---
+ doc/classes/Tween.xml     | 30 ++++++++++++++++++++++++++++++
+ scene/animation/tween.cpp | 32 ++++++++++++++++++++++++++++++++
+ scene/animation/tween.h   |  1 +
+ 3 files changed, 63 insertions(+)
+
+diff --git a/doc/classes/Tween.xml b/doc/classes/Tween.xml
+index 371b027534a..38d0419dbd3 100644
+--- a/doc/classes/Tween.xml
++++ b/doc/classes/Tween.xml
+@@ -79,6 +79,36 @@
+ 				Returns the total time needed for all tweens to end. If you have two tweens, one lasting 10 seconds and the other 20 seconds, it would return 20 seconds, as by that time all tweens would have finished.
+ 			</description>
+ 		</method>
++		<method name="interpolate">
++			<return type="Variant">
++			</return>
++			<argument index="0" name="initial_val" type="Variant">
++			</argument>
++			<argument index="1" name="final_val" type="Variant">
++			</argument>
++			<argument index="2" name="weight" type="float">
++			</argument>
++			<argument index="3" name="trans_type" type="int" enum="Tween.TransitionType" default="0">
++			</argument>
++			<argument index="4" name="ease_type" type="int" enum="Tween.EaseType" default="2">
++			</argument>
++			<description>
++				Returns an interpolated value between [code]initial_val[/code] and [code]final_val[/code], following the transition and easing curves defined in [code]trans_type[/code] and [code]ease_type[/code]. [code]weight[/code] must be between 0 and 1 (inclusive). This can be used as a lower-level alternative to [method interpolate_property].
++				[code]initial_val[/code] and [code]final_val[/code] must be of the same type. If interpolation fails, this method will return [code]false[/code].
++				[b]Note:[/b] If you only need linear interpolation, [method @GDScript.lerp], [method Vector2.linear_interpolate] or [method Vector3.linear_interpolate] may be easier to set up.
++				[codeblock]
++				var tween = Tween.new()
++				# Prints 0.5
++				print(tween.interpolate(0, 1, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN))
++				# Prints 0.25
++				print(tween.interpolate(0, 1, 0.5, Tween.TRANS_QUAD, Tween.EASE_IN))
++				# Prints 12.5
++				print(tween.interpolate(5, 20, 0.5, Tween.TRANS_LINEAR, Tween.EASE_IN))
++				# Prints 8.75
++				print(tween.interpolate(5, 20, 0.5, Tween.TRANS_QUAD, Tween.EASE_IN))
++				[/codeblock]
++			</description>
++		</method>
+ 		<method name="interpolate_callback">
+ 			<return type="void">
+ 			</return>
+diff --git a/scene/animation/tween.cpp b/scene/animation/tween.cpp
+index 628568afbb6..7c0b83010da 100644
+--- a/scene/animation/tween.cpp
++++ b/scene/animation/tween.cpp
+@@ -238,6 +238,7 @@ void Tween::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("get_runtime"), &Tween::get_runtime);
+ 
+ 	// Bind interpolation and follow methods
++	ClassDB::bind_method(D_METHOD("interpolate", "initial_val", "final_val", "weight", "trans_type", "ease_type"), &Tween::interpolate, DEFVAL(TRANS_LINEAR), DEFVAL(EASE_IN_OUT));
+ 	ClassDB::bind_method(D_METHOD("interpolate_property", "object", "property", "initial_val", "final_val", "duration", "trans_type", "ease_type", "delay"), &Tween::interpolate_property, DEFVAL(TRANS_LINEAR), DEFVAL(EASE_IN_OUT), DEFVAL(0));
+ 	ClassDB::bind_method(D_METHOD("interpolate_method", "object", "method", "initial_val", "final_val", "duration", "trans_type", "ease_type", "delay"), &Tween::interpolate_method, DEFVAL(TRANS_LINEAR), DEFVAL(EASE_IN_OUT), DEFVAL(0));
+ 	ClassDB::bind_method(D_METHOD("interpolate_callback", "object", "duration", "callback", "arg1", "arg2", "arg3", "arg4", "arg5"), &Tween::interpolate_callback, DEFVAL(Variant()), DEFVAL(Variant()), DEFVAL(Variant()), DEFVAL(Variant()), DEFVAL(Variant()));
+@@ -1316,6 +1317,37 @@ void Tween::_build_interpolation(InterpolateType p_interpolation_type, Object *p
+ 	_push_interpolate_data(data);
+ }
+ 
++Variant Tween::interpolate(Variant p_initial_val, Variant p_final_val, real_t p_weight, TransitionType p_trans_type, EaseType p_ease_type) {
++
++	// Convert any integers into REALs as they are better for interpolation.
++	if (p_initial_val.get_type() == Variant::INT) {
++		p_initial_val = p_initial_val.operator real_t();
++	}
++	if (p_final_val.get_type() == Variant::INT) {
++		p_final_val = p_final_val.operator real_t();
++	}
++
++	ERR_FAIL_COND_V(p_initial_val.get_type() == Variant::NIL, false);
++	ERR_FAIL_COND_V(p_initial_val.get_type() != p_final_val.get_type(), false);
++	ERR_FAIL_COND_V(p_weight < 0 || p_weight > 1, false);
++	ERR_FAIL_COND_V(p_trans_type < 0 || p_trans_type >= TRANS_COUNT, false);
++	ERR_FAIL_COND_V(p_ease_type < 0 || p_ease_type >= EASE_COUNT, false);
++
++	InterpolateData data;
++	data.type = INTER_PROPERTY;
++	data.elapsed = p_weight;
++	data.initial_val = p_initial_val;
++	data.final_val = p_final_val;
++	data.duration = 1.0;
++	data.trans_type = p_trans_type;
++	data.ease_type = p_ease_type;
++	data.delay = 0;
++
++	ERR_FAIL_COND_V(!_calc_delta_val(data.initial_val, data.final_val, data.delta_val), false);
++
++	return _run_equation(data);
++}
++
+ void Tween::interpolate_property(Object *p_object, NodePath p_property, Variant p_initial_val, Variant p_final_val, real_t p_duration, TransitionType p_trans_type, EaseType p_ease_type, real_t p_delay) {
+ 	// If we are busy updating, call this function again later
+ 	if (pending_update != 0) {
+diff --git a/scene/animation/tween.h b/scene/animation/tween.h
+index f74df50f68e..565787e9e4d 100644
+--- a/scene/animation/tween.h
++++ b/scene/animation/tween.h
+@@ -179,6 +179,7 @@ class Tween : public Node {
+ 	real_t tell() const;
+ 	real_t get_runtime() const;
+ 
++	Variant interpolate(Variant p_initial_val, Variant p_final_val, real_t p_weight, TransitionType p_trans_type, EaseType p_ease_type);
+ 	void interpolate_property(Object *p_object, NodePath p_property, Variant p_initial_val, Variant p_final_val, real_t p_duration, TransitionType p_trans_type = TRANS_LINEAR, EaseType p_ease_type = EASE_IN_OUT, real_t p_delay = 0);
+ 	void interpolate_method(Object *p_object, StringName p_method, Variant p_initial_val, Variant p_final_val, real_t p_duration, TransitionType p_trans_type = TRANS_LINEAR, EaseType p_ease_type = EASE_IN_OUT, real_t p_delay = 0);
+ 	void interpolate_callback(Object *p_object, real_t p_duration, String p_callback, VARIANT_ARG_DECLARE);
+

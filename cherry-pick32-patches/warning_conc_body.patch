@@ -1,0 +1,45 @@
+From cfe31a4271e83b4f9ce7e5bf030cc1b7d4fa7e8b Mon Sep 17 00:00:00 2001
+From: Pierre Caye <cayepierre@yahoo.fr>
+Date: Tue, 3 Mar 2020 17:05:10 +0100
+Subject: [PATCH] Add a new configuration warning to CollisionShape
+
+In the case where a ConcavePolygonShape is used as a shape for a RigidBody
+in another mode than static, a configuration warning will appear in the
+editor.
+---
+ scene/3d/collision_shape.cpp | 8 ++++++++
+ scene/3d/physics_body.cpp    | 1 +
+ 2 files changed, 9 insertions(+)
+
+diff --git a/scene/3d/collision_shape.cpp b/scene/3d/collision_shape.cpp
+index 35e4a61cd65..d16c69203dc 100644
+--- a/scene/3d/collision_shape.cpp
++++ b/scene/3d/collision_shape.cpp
+@@ -123,6 +123,14 @@ String CollisionShape::get_configuration_warning() const {
+ 		return TTR("A shape must be provided for CollisionShape to function. Please create a shape resource for it.");
+ 	}
+
++	if (Object::cast_to<RigidBody>(get_parent())) {
++		if (Object::cast_to<ConcavePolygonShape>(*shape)) {
++			if (Object::cast_to<RigidBody>(get_parent())->get_mode() != RigidBody::MODE_STATIC) {
++				return TTR("ConcavePolygonShape doesn't support RigidBody in another mode than static!");
++			}
++		}
++	}
++
+ 	return String();
+ }
+
+diff --git a/scene/3d/physics_body.cpp b/scene/3d/physics_body.cpp
+index eba45a5604c..2f8dc31cb67 100644
+--- a/scene/3d/physics_body.cpp
++++ b/scene/3d/physics_body.cpp
+@@ -518,6 +518,7 @@ void RigidBody::set_mode(Mode p_mode) {
+ 			PhysicsServer::get_singleton()->body_set_mode(get_rid(), PhysicsServer::BODY_MODE_KINEMATIC);
+ 		} break;
+ 	}
++	update_configuration_warning();
+ }
+
+ RigidBody::Mode RigidBody::get_mode() const {
+

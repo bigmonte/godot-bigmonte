@@ -1485,7 +1485,7 @@ bool Main::start() {
 
 		{
 			DirAccessRef da = DirAccess::open(doc_tool);
-			ERR_FAIL_COND_V_MSG(!da, false, "Argument supplied to --doctool must be a base Godot build directory.");
+			ERR_FAIL_COND_V_MSG(!da, false, "Argument supplied to --doctool must be a valid directory path.");
 		}
 		DocData doc;
 		doc.generate(doc_base);
@@ -1737,25 +1737,27 @@ bool Main::start() {
 			//standard helpers that can be changed from main config
 
 			String stretch_mode = GLOBAL_DEF("display/window/stretch/mode", "disabled");
-			String stretch_aspect = GLOBAL_DEF("display/window/stretch/aspect", "ignore");
+			String stretch_aspect = GLOBAL_DEF("display/window/stretch/aspect", "expand");
 			Size2i stretch_size = Size2(GLOBAL_DEF("display/window/size/width", 0), GLOBAL_DEF("display/window/size/height", 0));
 			real_t stretch_shrink = GLOBAL_DEF("display/window/stretch/shrink", 1.0);
 
 			SceneTree::StretchMode sml_sm = SceneTree::STRETCH_MODE_DISABLED;
-			if (stretch_mode == "2d")
+			if (stretch_mode == "2d") {
 				sml_sm = SceneTree::STRETCH_MODE_2D;
-			else if (stretch_mode == "viewport")
+			} else if (stretch_mode == "viewport") {
 				sml_sm = SceneTree::STRETCH_MODE_VIEWPORT;
+			}
 
-			SceneTree::StretchAspect sml_aspect = SceneTree::STRETCH_ASPECT_IGNORE;
-			if (stretch_aspect == "keep")
+			SceneTree::StretchAspect sml_aspect = SceneTree::STRETCH_ASPECT_EXPAND;
+			if (stretch_aspect == "ignore") {
+				sml_aspect = SceneTree::STRETCH_ASPECT_IGNORE;
+			} else if (stretch_aspect == "keep") {
 				sml_aspect = SceneTree::STRETCH_ASPECT_KEEP;
-			else if (stretch_aspect == "keep_width")
+			} else if (stretch_aspect == "keep_width") {
 				sml_aspect = SceneTree::STRETCH_ASPECT_KEEP_WIDTH;
-			else if (stretch_aspect == "keep_height")
+			} else if (stretch_aspect == "keep_height") {
 				sml_aspect = SceneTree::STRETCH_ASPECT_KEEP_HEIGHT;
-			else if (stretch_aspect == "expand")
-				sml_aspect = SceneTree::STRETCH_ASPECT_EXPAND;
+			}
 
 			sml->set_screen_stretch(sml_sm, sml_aspect, stretch_size, stretch_shrink);
 
@@ -1789,7 +1791,7 @@ bool Main::start() {
 
 			GLOBAL_DEF("display/window/stretch/mode", "disabled");
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/mode", PropertyInfo(Variant::STRING, "display/window/stretch/mode", PROPERTY_HINT_ENUM, "disabled,2d,viewport"));
-			GLOBAL_DEF("display/window/stretch/aspect", "ignore");
+			GLOBAL_DEF("display/window/stretch/aspect", "expand");
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/aspect", PropertyInfo(Variant::STRING, "display/window/stretch/aspect", PROPERTY_HINT_ENUM, "ignore,keep,keep_width,keep_height,expand"));
 			GLOBAL_DEF("display/window/stretch/shrink", 1.0);
 			ProjectSettings::get_singleton()->set_custom_property_info("display/window/stretch/shrink", PropertyInfo(Variant::REAL, "display/window/stretch/shrink", PROPERTY_HINT_RANGE, "1.0,8.0,0.1"));

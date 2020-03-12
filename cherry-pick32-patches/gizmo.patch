@@ -1,0 +1,50 @@
+From a0af3094b47fabb1fd6bb7f5e5aecc8fefd2486c Mon Sep 17 00:00:00 2001
+From: JFonS <joan.fonssanchez@gmail.com>
+Date: Tue, 10 Mar 2020 16:23:22 +0100
+Subject: [PATCH] Fix rotation gizmo for empty Spatials
+
+The AABB for an empty Spatial has 0 size, since the stored and
+compared Transform was scaled by the AABB size, it would completely
+destroy the rotation information. If there is no rotation
+information, the gizmo doesn't update when the rotation changes.
+---
+ editor/plugins/spatial_editor_plugin.cpp | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/editor/plugins/spatial_editor_plugin.cpp b/editor/plugins/spatial_editor_plugin.cpp
+index 647d64c6274..a71cb50db49 100644
+--- a/editor/plugins/spatial_editor_plugin.cpp
++++ b/editor/plugins/spatial_editor_plugin.cpp
+@@ -2416,11 +2416,18 @@ void SpatialEditorViewport::_notification(int p_what) {
+ 			if (!se)
+ 				continue;
+ 
++			Transform t = sp->get_global_gizmo_transform();
++
++			exist = true;
++			if (se->last_xform == t)
++				continue;
++			changed = true;
++			se->last_xform = t;
++
+ 			VisualInstance *vi = Object::cast_to<VisualInstance>(sp);
+ 
+ 			se->aabb = vi ? vi->get_aabb() : _calculate_spatial_bounds(sp);
+ 
+-			Transform t = sp->get_global_gizmo_transform();
+ 			t.translate(se->aabb.position);
+ 
+ 			// apply AABB scaling before item's global transform
+@@ -2428,11 +2435,6 @@ void SpatialEditorViewport::_notification(int p_what) {
+ 			aabb_s.scale(se->aabb.size);
+ 			t.basis = t.basis * aabb_s;
+ 
+-			exist = true;
+-			if (se->last_xform == t)
+-				continue;
+-			changed = true;
+-			se->last_xform = t;
+ 			VisualServer::get_singleton()->instance_set_transform(se->sbox_instance, t);
+ 		}
+ 
+

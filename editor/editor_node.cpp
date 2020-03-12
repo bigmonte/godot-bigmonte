@@ -1400,7 +1400,6 @@ void EditorNode::_mark_unsaved_scenes() {
 		String path = node->get_filename();
 		if (!(path == String() || FileAccess::exists(path))) {
 
-			node->set_filename("");
 			if (i == editor_data.get_edited_scene())
 				set_current_version(-1);
 			else
@@ -3246,7 +3245,7 @@ void EditorNode::_clear_undo_history() {
 void EditorNode::set_current_scene(int p_idx) {
 
 	//Save the folding in case the scene gets reloaded.
-	if (editor_data.get_scene_path(p_idx) != "")
+	if (editor_data.get_scene_path(p_idx) != "" && editor_data.get_edited_scene_root(p_idx))
 		editor_folding.save_scene_folding(editor_data.get_edited_scene_root(p_idx), editor_data.get_scene_path(p_idx));
 
 	if (editor_data.check_and_update_scene(p_idx)) {
@@ -3752,7 +3751,10 @@ StringName EditorNode::get_object_custom_type_name(const Object *p_object) const
 	return StringName();
 }
 
-Ref<ImageTexture> EditorNode::_load_custom_class_icon(const String &p_path) const {
+Ref<ImageTexture> EditorNode::_load_custom_class_icon(const String &p_path) {
+	if (icon_custom_cache.has(p_path)) {
+		return icon_custom_cache[p_path];
+	}
 	if (p_path.length()) {
 		Ref<Image> img = memnew(Image);
 		Error err = ImageLoader::load_image(p_path, img);
@@ -3760,13 +3762,14 @@ Ref<ImageTexture> EditorNode::_load_custom_class_icon(const String &p_path) cons
 			Ref<ImageTexture> icon = memnew(ImageTexture);
 			img->resize(16 * EDSCALE, 16 * EDSCALE, Image::INTERPOLATE_LANCZOS);
 			icon->create_from_image(img);
+			icon_custom_cache.insert(p_path, icon);
 			return icon;
 		}
 	}
 	return NULL;
 }
 
-Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p_fallback) const {
+Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p_fallback) {
 	ERR_FAIL_COND_V(!p_object || !gui_base, NULL);
 
 	Ref<Script> script = p_object->get_script();
@@ -3811,7 +3814,7 @@ Ref<Texture> EditorNode::get_object_icon(const Object *p_object, const String &p
 	return NULL;
 }
 
-Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_fallback) const {
+Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_fallback) {
 	ERR_FAIL_COND_V_MSG(p_class.empty(), NULL, "Class name cannot be empty.");
 
 	if (gui_base->has_icon(p_class, "EditorIcons")) {
