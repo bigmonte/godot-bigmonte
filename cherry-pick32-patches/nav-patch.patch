@@ -1,0 +1,327 @@
+From 6f7df03570f00edf757d7e91eef798263eed8d87 Mon Sep 17 00:00:00 2001
+From: Andrea Catania <info@andreacatania.com>
+Date: Tue, 10 Mar 2020 13:59:57 +0100
+Subject: [PATCH] Added possibility to force collision avoidance processing
+
+This work has been kindly sponsored by IMVU.
+---
+ doc/classes/Navigation2DServer.xml            | 11 +++++++++++
+ doc/classes/NavigationAgent.xml               |  9 +++++++++
+ doc/classes/NavigationAgent2D.xml             |  9 +++++++++
+ doc/classes/NavigationServer.xml              | 11 +++++++++++
+ modules/gdnavigation/gd_navigation_server.cpp | 19 +++++++++++++++++++
+ modules/gdnavigation/gd_navigation_server.h   |  1 +
+ modules/gdnavigation/nav_map.cpp              |  5 +++++
+ modules/gdnavigation/nav_map.h                |  2 ++
+ scene/2d/navigation_agent_2d.cpp              | 11 +++++++++++
+ scene/2d/navigation_agent_2d.h                |  2 ++
+ scene/3d/navigation_agent.cpp                 | 12 ++++++++++++
+ scene/3d/navigation_agent.h                   |  2 ++
+ servers/navigation_2d_server.cpp              |  3 +++
+ servers/navigation_2d_server.h                |  4 ++++
+ servers/navigation_server.cpp                 |  1 +
+ servers/navigation_server.h                   |  4 ++++
+ 16 files changed, 106 insertions(+)
+
+diff --git a/doc/classes/Navigation2DServer.xml b/doc/classes/Navigation2DServer.xml
+index 110844c492f..61a5409557e 100644
+--- a/doc/classes/Navigation2DServer.xml
++++ b/doc/classes/Navigation2DServer.xml
+@@ -139,6 +139,17 @@
+ 				Sets the current velocity of the agent.
+ 			</description>
+ 		</method>
++		<method name="agent_force_process_avoidance" qualifiers="const">
++			<return type="Vector2">
++			</return>
++			<argument index="0" name="agent" type="RID">
++			</argument>
++			<argument index="1" name="delta" type="float">
++			</argument>
++			<description>
++				Performs collision avoidance immediately for the specified agent. Please use this function as last solution because it's not optimal.
++			</description>
++		</method>
+ 		<method name="free" qualifiers="const">
+ 			<return type="void">
+ 			</return>
+diff --git a/doc/classes/NavigationAgent.xml b/doc/classes/NavigationAgent.xml
+index f896bf6d150..1829c82a14a 100644
+--- a/doc/classes/NavigationAgent.xml
++++ b/doc/classes/NavigationAgent.xml
+@@ -106,6 +106,15 @@
+ 				Sends the passed in velocity to the collision avoidance algorithm. It will adjust the velocity to avoid collisions. Once the adjustment to the velocity is complete, it will emit the [signal velocity_computed] signal.
+ 			</description>
+ 		</method>
++		<method name="force_process_avoidance">          
++			<return type="Vector3">
++			</return>
++			<argument index="1" name="delta" type="float">
++			</argument>
++			<description>
++				Performs collision avoidance immediately for this agent. Please use this function     as last solution because it's not optimal.
++			</description>
++		</method>
+ 	</methods>
+ 	<members>
+ 		<member name="agent_height_offset" type="float" setter="set_agent_height_offset" getter="get_agent_height_offset" default="0.0">
+diff --git a/doc/classes/NavigationAgent2D.xml b/doc/classes/NavigationAgent2D.xml
+index 116db76cc5c..755036482ff 100644
+--- a/doc/classes/NavigationAgent2D.xml
++++ b/doc/classes/NavigationAgent2D.xml
+@@ -106,6 +106,15 @@
+ 				Sends the passed in velocity to the collision avoidance algorithm. It will adjust the velocity to avoid collisions. Once the adjustment to the velocity is complete, it will emit the [signal velocity_computed] signal.
+ 			</description>
+ 		</method>
++		<method name="force_process_avoidance">                                 
++			<return type="Vector2">
++			</return>
++			<argument index="1" name="delta" type="float">
++			</argument>
++			<description>
++				Performs collision avoidance immediately for this agent. Please use this function     as last solution because it's not optimal.
++			</description>
++		</method>
+ 	</methods>
+ 	<members>
+ 		<member name="max_neighbors" type="int" setter="set_max_neighbors" getter="get_max_neighbors" default="10">
+diff --git a/doc/classes/NavigationServer.xml b/doc/classes/NavigationServer.xml
+index 1b534b8458f..75d8b36b809 100644
+--- a/doc/classes/NavigationServer.xml
++++ b/doc/classes/NavigationServer.xml
+@@ -139,6 +139,17 @@
+ 				Sets the current velocity of the agent.
+ 			</description>
+ 		</method>
++		<method name="agent_force_process_avoidance" qualifiers="const">
++         		<return type="Vector3">
++         		</return>
++         		<argument index="0" name="agent" type="RID">
++         		</argument>
++         		<argument index="1" name="delta" type="float">
++         		</argument>
++         		<description>
++				Performs collision avoidance immediately for the specified agent. Please use this function     as last solution because it's not optimal.
++			</description>
++		</method>
+ 		<method name="free" qualifiers="const">
+ 			<return type="void">
+ 			</return>
+diff --git a/modules/gdnavigation/gd_navigation_server.cpp b/modules/gdnavigation/gd_navigation_server.cpp
+index 4db10cda78d..c1c9daf27fd 100644
+--- a/modules/gdnavigation/gd_navigation_server.cpp
++++ b/modules/gdnavigation/gd_navigation_server.cpp
+@@ -411,6 +411,25 @@ COMMAND_4(agent_set_callback, RID, p_agent, Object *, p_receiver, StringName, p_
+ 	}
+ }
+ 
++Vector3 GdNavigationServer::agent_force_process_avoidance(RID p_agent, real_t p_delta) const {
++
++	operations_mutex->lock();
++	RvoAgent *agent = agent_owner.get(p_agent);
++	if (agent == NULL || agent->get_map() == NULL) {
++		operations_mutex->unlock();
++		ERR_FAIL_COND_V(agent == NULL, Vector3());
++		ERR_FAIL_COND_V(agent->get_map() == NULL, Vector3());
++	}
++
++	agent->get_map()->step_agent(agent, p_delta);
++	operations_mutex->unlock();
++
++	return Vector3(
++			agent->get_agent()->newVelocity_.x(),
++			agent->get_agent()->newVelocity_.y(),
++			agent->get_agent()->newVelocity_.z());
++}
++
+ COMMAND_1(free, RID, p_object) {
+ 	if (map_owner.owns(p_object)) {
+ 		NavMap *map = map_owner.getornull(p_object);
+diff --git a/modules/gdnavigation/gd_navigation_server.h b/modules/gdnavigation/gd_navigation_server.h
+index e9f5c1ffe64..ca31973bbcb 100644
+--- a/modules/gdnavigation/gd_navigation_server.h
++++ b/modules/gdnavigation/gd_navigation_server.h
+@@ -126,6 +126,7 @@ class GdNavigationServer : public NavigationServer {
+ 	COMMAND_2(agent_set_ignore_y, RID, p_agent, bool, p_ignore);
+ 	virtual bool agent_is_map_changed(RID p_agent) const;
+ 	COMMAND_4_DEF(agent_set_callback, RID, p_agent, Object *, p_receiver, StringName, p_method, Variant, p_udata, Variant());
++	virtual Vector3 agent_force_process_avoidance(RID p_agent, real_t p_delta) const;
+ 
+ 	COMMAND_1(free, RID, p_object);
+ 
+diff --git a/modules/gdnavigation/nav_map.cpp b/modules/gdnavigation/nav_map.cpp
+index 00a1901c48a..16ab3b06440 100644
+--- a/modules/gdnavigation/nav_map.cpp
++++ b/modules/gdnavigation/nav_map.cpp
+@@ -587,6 +587,11 @@ void NavMap::remove_agent_as_controlled(RvoAgent *agent) {
+ 	}
+ }
+ 
++void NavMap::step_agent(RvoAgent *agent, real_t p_delta) {
++	agent->get_agent()->computeNeighbors(&rvo);
++	agent->get_agent()->computeNewVelocity(p_delta);
++}
++
+ void NavMap::sync() {
+ 
+ 	if (regenerate_polygons) {
+diff --git a/modules/gdnavigation/nav_map.h b/modules/gdnavigation/nav_map.h
+index 4543f009268..f5c718824be 100644
+--- a/modules/gdnavigation/nav_map.h
++++ b/modules/gdnavigation/nav_map.h
+@@ -129,6 +129,8 @@ class NavMap : public NavRid {
+ 		return map_update_id;
+ 	}
+ 
++	void step_agent(RvoAgent *agent, real_t p_deltatime);
++
+ 	void sync();
+ 	void step(real_t p_deltatime);
+ 	void dispatch_callbacks();
+diff --git a/scene/2d/navigation_agent_2d.cpp b/scene/2d/navigation_agent_2d.cpp
+index f5fe113f29d..213083913c2 100644
+--- a/scene/2d/navigation_agent_2d.cpp
++++ b/scene/2d/navigation_agent_2d.cpp
+@@ -73,6 +73,7 @@ void NavigationAgent2D::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("get_final_location"), &NavigationAgent2D::get_final_location);
+ 
+ 	ClassDB::bind_method(D_METHOD("_avoidance_done", "new_velocity"), &NavigationAgent2D::_avoidance_done);
++	ClassDB::bind_method(D_METHOD("force_process_avoidance", "delta"), &NavigationAgent2D::force_process_avoidance);
+ 
+ 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "target_desired_distance", PROPERTY_HINT_RANGE, "0.1,100,0.01"), "set_target_desired_distance", "get_target_desired_distance");
+ 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "radius", PROPERTY_HINT_RANGE, "0.1,500,0.01"), "set_radius", "get_radius");
+@@ -277,6 +278,16 @@ void NavigationAgent2D::_avoidance_done(Vector3 p_new_velocity) {
+ 	emit_signal("velocity_computed", velocity);
+ }
+ 
++Vector2 NavigationAgent2D::force_process_avoidance(real_t p_delta) {
++	if (!velocity_submitted) {
++		target_velocity = Vector2();
++		return Vector2();
++	}
++	velocity_submitted = false;
++
++	return Navigation2DServer::get_singleton()->agent_force_process_avoidance(agent, p_delta);
++}
++
+ String NavigationAgent2D::get_configuration_warning() const {
+ 	if (!Object::cast_to<Node2D>(get_parent())) {
+ 		return TTR("The NavigationAgent2D can be used only under a Node2D node");
+diff --git a/scene/2d/navigation_agent_2d.h b/scene/2d/navigation_agent_2d.h
+index 26eccfc9498..11a8e5d601d 100644
+--- a/scene/2d/navigation_agent_2d.h
++++ b/scene/2d/navigation_agent_2d.h
+@@ -141,6 +141,8 @@ class NavigationAgent2D : public Node {
+ 	void set_velocity(Vector2 p_velocity);
+ 	void _avoidance_done(Vector3 p_new_velocity);
+ 
++	Vector2 force_process_avoidance(real_t p_delta);
++
+ 	virtual String get_configuration_warning() const;
+ 
+ private:
+diff --git a/scene/3d/navigation_agent.cpp b/scene/3d/navigation_agent.cpp
+index 728fc947e96..dac6d1644d1 100644
+--- a/scene/3d/navigation_agent.cpp
++++ b/scene/3d/navigation_agent.cpp
+@@ -78,6 +78,8 @@ void NavigationAgent::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("is_navigation_finished"), &NavigationAgent::is_navigation_finished);
+ 	ClassDB::bind_method(D_METHOD("get_final_location"), &NavigationAgent::get_final_location);
+ 
++	ClassDB::bind_method(D_METHOD("force_process_avoidance", "delta"), &NavigationAgent::force_process_avoidance);
++
+ 	ClassDB::bind_method(D_METHOD("_avoidance_done", "new_velocity"), &NavigationAgent::_avoidance_done);
+ 
+ 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "target_desired_distance", PROPERTY_HINT_RANGE, "0.1,100,0.01"), "set_target_desired_distance", "get_target_desired_distance");
+@@ -295,6 +297,16 @@ void NavigationAgent::_avoidance_done(Vector3 p_new_velocity) {
+ 	emit_signal("velocity_computed", p_new_velocity);
+ }
+ 
++Vector3 NavigationAgent::force_process_avoidance(real_t p_delta) {
++	if (!velocity_submitted) {
++		target_velocity = Vector3();
++		return Vector3();
++	}
++	velocity_submitted = false;
++
++	return NavigationServer::get_singleton()->agent_force_process_avoidance(agent, p_delta);
++}
++
+ String NavigationAgent::get_configuration_warning() const {
+ 	if (!Object::cast_to<Spatial>(get_parent())) {
+ 		return TTR("The NavigationAgent can be used only under a spatial node.");
+diff --git a/scene/3d/navigation_agent.h b/scene/3d/navigation_agent.h
+index 200d5db4759..94cff871e82 100644
+--- a/scene/3d/navigation_agent.h
++++ b/scene/3d/navigation_agent.h
+@@ -153,6 +153,8 @@ class NavigationAgent : public Node {
+ 	void set_velocity(Vector3 p_velocity);
+ 	void _avoidance_done(Vector3 p_new_velocity);
+ 
++	Vector3 force_process_avoidance(real_t p_delta);
++
+ 	virtual String get_configuration_warning() const;
+ 
+ private:
+diff --git a/servers/navigation_2d_server.cpp b/servers/navigation_2d_server.cpp
+index d9b53122e2b..c8802cf50c5 100644
+--- a/servers/navigation_2d_server.cpp
++++ b/servers/navigation_2d_server.cpp
+@@ -158,6 +158,7 @@ void Navigation2DServer::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("agent_set_position", "agent", "position"), &Navigation2DServer::agent_set_position);
+ 	ClassDB::bind_method(D_METHOD("agent_is_map_changed", "agent"), &Navigation2DServer::agent_is_map_changed);
+ 	ClassDB::bind_method(D_METHOD("agent_set_callback", "agent", "receiver", "method", "userdata"), &Navigation2DServer::agent_set_callback, DEFVAL(Variant()));
++	ClassDB::bind_method(D_METHOD("agent_force_process_avoidance", "agent", "delta"), &Navigation2DServer::agent_force_process_avoidance);
+ 
+ 	ClassDB::bind_method(D_METHOD("free", "object"), &Navigation2DServer::free);
+ }
+@@ -226,4 +227,6 @@ bool FORWARD_1_C(agent_is_map_changed, RID, p_agent, rid_to_rid);
+ 
+ void FORWARD_4_C(agent_set_callback, RID, p_agent, Object *, p_receiver, StringName, p_method, Variant, p_udata, rid_to_rid, obj_to_obj, sn_to_sn, var_to_var);
+ 
++Vector2 FORWARD_2_R_C(v3_to_v2, agent_force_process_avoidance, RID, p_agent, real_t, p_delta, rid_to_rid, real_to_real);
++
+ void FORWARD_1_C(free, RID, p_object, rid_to_rid);
+diff --git a/servers/navigation_2d_server.h b/servers/navigation_2d_server.h
+index 955b0c3726a..f6ff4244c0f 100644
+--- a/servers/navigation_2d_server.h
++++ b/servers/navigation_2d_server.h
+@@ -153,6 +153,10 @@ class Navigation2DServer : public Object {
+ 	/// Callback called at the end of the RVO process
+ 	virtual void agent_set_callback(RID p_agent, Object *p_receiver, StringName p_method, Variant p_udata = Variant()) const;
+ 
++	/// Force collision avoidance now.
++	/// When possible it's better to avoid this function.
++	virtual Vector2 agent_force_process_avoidance(RID p_agent, real_t p_delta) const;
++
+ 	/// Destroy the `RID`
+ 	virtual void free(RID p_object) const;
+ 
+diff --git a/servers/navigation_server.cpp b/servers/navigation_server.cpp
+index f2b727ac477..59b0088c1e0 100644
+--- a/servers/navigation_server.cpp
++++ b/servers/navigation_server.cpp
+@@ -71,6 +71,7 @@ void NavigationServer::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("agent_set_position", "agent", "position"), &NavigationServer::agent_set_position);
+ 	ClassDB::bind_method(D_METHOD("agent_is_map_changed", "agent"), &NavigationServer::agent_is_map_changed);
+ 	ClassDB::bind_method(D_METHOD("agent_set_callback", "agent", "receiver", "method", "userdata"), &NavigationServer::agent_set_callback, DEFVAL(Variant()));
++	ClassDB::bind_method(D_METHOD("agent_force_process_avoidance", "agent", "delta"), &NavigationServer::agent_force_process_avoidance);
+ 
+ 	ClassDB::bind_method(D_METHOD("free", "object"), &NavigationServer::free);
+ 
+diff --git a/servers/navigation_server.h b/servers/navigation_server.h
+index 7c9b6ba5951..9a47ddd69dd 100644
+--- a/servers/navigation_server.h
++++ b/servers/navigation_server.h
+@@ -169,6 +169,10 @@ class NavigationServer : public Object {
+ 	/// Callback called at the end of the RVO process
+ 	virtual void agent_set_callback(RID p_agent, Object *p_receiver, StringName p_method, Variant p_udata = Variant()) const = 0;
+ 
++	/// Force collision avoidance now.
++	/// When possible it's better to avoid this function.
++	virtual Vector3 agent_force_process_avoidance(RID p_agent, real_t p_delta) const = 0;
++
+ 	/// Destroy the `RID`
+ 	virtual void free(RID p_object) const = 0;
+ 
+
