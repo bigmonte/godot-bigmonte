@@ -1,0 +1,129 @@
+From 50a570c9c18da27aad5b921af56e6c2f31e0648f Mon Sep 17 00:00:00 2001
+From: janglee <merupatel123@gmail.com>
+Date: Sun, 1 Mar 2020 13:43:41 +0530
+Subject: [PATCH] Removed underlining for not clickable symbols
+
+---
+ editor/plugins/script_text_editor.cpp | 18 ++++++++++++++++++
+ editor/plugins/script_text_editor.h   |  1 +
+ scene/gui/text_edit.cpp               | 20 ++++++++++----------
+ scene/gui/text_edit.h                 |  1 +
+ 4 files changed, 30 insertions(+), 10 deletions(-)
+
+diff --git a/editor/plugins/script_text_editor.cpp b/editor/plugins/script_text_editor.cpp
+index d3d64f0dc52..daf048eebae 100644
+--- a/editor/plugins/script_text_editor.cpp
++++ b/editor/plugins/script_text_editor.cpp
+@@ -980,6 +980,23 @@ void ScriptTextEditor::_lookup_symbol(const String &p_symbol, int p_row, int p_c
+ 	}
+ }
+ 
++void ScriptTextEditor::_validate_symbol(const String &p_symbol) {
++
++	TextEdit *text_edit = code_editor->get_text_edit();
++
++	Node *base = get_tree()->get_edited_scene_root();
++	if (base) {
++		base = _find_node_for_script(base, base, script);
++	}
++
++	ScriptLanguage::LookupResult result;
++	if (ScriptServer::is_global_class(p_symbol) || p_symbol.is_resource_file() || script->get_language()->lookup_code(code_editor->get_text_edit()->get_text_for_lookup_completion(), p_symbol, script->get_path(), base, result) == OK) {
++		text_edit->set_highlighted_word(p_symbol);
++	} else {
++		text_edit->set_highlighted_word(String());
++	}
++}
++
+ void ScriptTextEditor::update_toggle_scripts_button() {
+ 	if (code_editor != NULL) {
+ 		code_editor->update_toggle_scripts_button();
+@@ -1769,6 +1786,7 @@ ScriptTextEditor::ScriptTextEditor() {
+ 	code_editor->set_code_complete_func(_code_complete_scripts, this);
+ 	code_editor->get_text_edit()->connect("breakpoint_toggled", callable_mp(this, &ScriptTextEditor::_breakpoint_toggled));
+ 	code_editor->get_text_edit()->connect("symbol_lookup", callable_mp(this, &ScriptTextEditor::_lookup_symbol));
++	code_editor->get_text_edit()->connect("symbol_validate", callable_mp(this, &ScriptTextEditor::_validate_symbol));
+ 	code_editor->get_text_edit()->connect("info_clicked", callable_mp(this, &ScriptTextEditor::_lookup_connections));
+ 	code_editor->set_v_size_flags(SIZE_EXPAND_FILL);
+ 	code_editor->show_toggle_scripts_button();
+diff --git a/editor/plugins/script_text_editor.h b/editor/plugins/script_text_editor.h
+index e23160d029e..d2f0b310e60 100644
+--- a/editor/plugins/script_text_editor.h
++++ b/editor/plugins/script_text_editor.h
+@@ -178,6 +178,7 @@ class ScriptTextEditor : public ScriptEditorBase {
+ 
+ 	void _goto_line(int p_line) { goto_line(p_line); }
+ 	void _lookup_symbol(const String &p_symbol, int p_row, int p_column);
++	void _validate_symbol(const String &p_symbol);
+ 
+ 	void _lookup_connections(int p_row, String p_method);
+ 
+diff --git a/scene/gui/text_edit.cpp b/scene/gui/text_edit.cpp
+index 86002ed2c4c..74084387da2 100644
+--- a/scene/gui/text_edit.cpp
++++ b/scene/gui/text_edit.cpp
+@@ -2517,13 +2517,11 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
+ 
+ 				String new_word = get_word_at_pos(mm->get_position());
+ 				if (new_word != highlighted_word) {
+-					highlighted_word = new_word;
+-					update();
++					emit_signal("symbol_validate", new_word);
+ 				}
+ 			} else {
+ 				if (highlighted_word != String()) {
+-					highlighted_word = String();
+-					update();
++					set_highlighted_word(String());
+ 				}
+ 			}
+ 		}
+@@ -2572,13 +2570,9 @@ void TextEdit::_gui_input(const Ref<InputEvent> &p_gui_input) {
+ 			if (select_identifiers_enabled) {
+ 
+ 				if (k->is_pressed() && !dragging_minimap && !dragging_selection) {
+-
+-					highlighted_word = get_word_at_pos(get_local_mouse_position());
+-					update();
+-
++					emit_signal("symbol_validate", get_word_at_pos(get_local_mouse_position()));
+ 				} else {
+-					highlighted_word = String();
+-					update();
++					set_highlighted_word(String());
+ 				}
+ 			}
+ 		}
+@@ -6996,6 +6990,11 @@ void TextEdit::menu_option(int p_option) {
+ 	}
+ }
+ 
++void TextEdit::set_highlighted_word(const String &new_word) {
++	highlighted_word = new_word;
++	update();
++}
++
+ void TextEdit::set_select_identifiers_on_hover(bool p_enable) {
+ 
+ 	select_identifiers_enabled = p_enable;
+@@ -7213,6 +7212,7 @@ void TextEdit::_bind_methods() {
+ 	ADD_SIGNAL(MethodInfo("breakpoint_toggled", PropertyInfo(Variant::INT, "row")));
+ 	ADD_SIGNAL(MethodInfo("symbol_lookup", PropertyInfo(Variant::STRING, "symbol"), PropertyInfo(Variant::INT, "row"), PropertyInfo(Variant::INT, "column")));
+ 	ADD_SIGNAL(MethodInfo("info_clicked", PropertyInfo(Variant::INT, "row"), PropertyInfo(Variant::STRING, "info")));
++	ADD_SIGNAL(MethodInfo("symbol_validate", PropertyInfo(Variant::STRING, "symbol")));
+ 
+ 	BIND_ENUM_CONSTANT(MENU_CUT);
+ 	BIND_ENUM_CONSTANT(MENU_COPY);
+diff --git a/scene/gui/text_edit.h b/scene/gui/text_edit.h
+index 6e267f5a47a..3c9d1a5c857 100644
+--- a/scene/gui/text_edit.h
++++ b/scene/gui/text_edit.h
+@@ -585,6 +585,7 @@ class TextEdit : public Control {
+ 
+ 	bool is_insert_text_operation();
+ 
++	void set_highlighted_word(const String &new_word);
+ 	void set_text(String p_text);
+ 	void insert_text_at_cursor(const String &p_text);
+ 	void insert_at(const String &p_text, int at);
+

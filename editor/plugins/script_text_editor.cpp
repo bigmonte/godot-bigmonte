@@ -973,6 +973,23 @@ void ScriptTextEditor::_lookup_symbol(const String &p_symbol, int p_row, int p_c
 	}
 }
 
+void ScriptTextEditor::_validate_symbol(const String &p_symbol) {
+
+	TextEdit *text_edit = code_editor->get_text_edit();
+
+	Node *base = get_tree()->get_edited_scene_root();
+	if (base) {
+		base = _find_node_for_script(base, base, script);
+	}
+
+	ScriptLanguage::LookupResult result;
+	if (ScriptServer::is_global_class(p_symbol) || p_symbol.is_resource_file() || script->get_language()->lookup_code(code_editor->get_text_edit()->get_text_for_lookup_completion(), p_symbol, script->get_path(), base, result) == OK) {
+		text_edit->set_highlighted_word(p_symbol);
+	} else {
+		text_edit->set_highlighted_word(String());
+	}
+}
+
 void ScriptTextEditor::update_toggle_scripts_button() {
 	if (code_editor != NULL) {
 		code_editor->update_toggle_scripts_button();
