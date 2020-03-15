@@ -2348,8 +2348,11 @@ bool CanvasItemEditor::_gui_input_select(const Ref<InputEvent> &p_event) {
 
 bool CanvasItemEditor::_gui_input_ruler_tool(const Ref<InputEvent> &p_event) {
 
-	if (tool != TOOL_RULER)
+	if (tool != TOOL_RULER) {
+
+		ruler_tool_active = false;
 		return false;
+	}
 
 	Ref<InputEventMouseButton> b = p_event;
 	Ref<InputEventMouseMotion> m = p_event;
