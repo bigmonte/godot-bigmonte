@@ -1,0 +1,57 @@
+From 8f925b197041dcca02313778ce9166eccc47918b Mon Sep 17 00:00:00 2001
+From: Michael Alexsander <michaelalexsander@protonmail.com>
+Date: Sat, 14 Mar 2020 10:47:36 -0300
+Subject: [PATCH] Fix incorrect TabContainer documentation for
+ 'get_tab_control()'
+
+---
+ doc/classes/TabContainer.xml | 4 ++--
+ doc/classes/TreeItem.xml     | 3 +--
+ scene/gui/tab_container.cpp  | 2 +-
+ 3 files changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/doc/classes/TabContainer.xml b/doc/classes/TabContainer.xml
+index f7e94ad2363..22e92ae5d94 100644
+--- a/doc/classes/TabContainer.xml
++++ b/doc/classes/TabContainer.xml
+@@ -36,10 +36,10 @@
+ 		<method name="get_tab_control" qualifiers="const">
+ 			<return type="Control">
+ 			</return>
+-			<argument index="0" name="idx" type="int">
++			<argument index="0" name="tab_idx" type="int">
+ 			</argument>
+ 			<description>
+-				Returns the currently visible tab's [Control] node.
++				Returns the [Control] node from the tab at index [code]tab_idx[/code].
+ 			</description>
+ 		</method>
+ 		<method name="get_tab_count" qualifiers="const">
+diff --git a/doc/classes/TreeItem.xml b/doc/classes/TreeItem.xml
+index f498919f9ea..84aa3a36863 100644
+--- a/doc/classes/TreeItem.xml
++++ b/doc/classes/TreeItem.xml
+@@ -23,8 +23,7 @@
+ 			<argument index="4" name="tooltip" type="String" default="&quot;&quot;">
+ 			</argument>
+ 			<description>
+-				Adds a button with [Texture2D] [code]button[/code] at column [code]column[/code]. The [code]button_idx[/code] index is used to identify the button when calling other methods. If not specified, the next available index is used, which may be retrieved by calling [method get_button_count] immediately after this method. Optionally, the button can be [code]disabled[/code] and have a [code]tooltip
+-				[/code].
++				Adds a button with [Texture2D] [code]button[/code] at column [code]column[/code]. The [code]button_idx[/code] index is used to identify the button when calling other methods. If not specified, the next available index is used, which may be retrieved by calling [method get_button_count] immediately after this method. Optionally, the button can be [code]disabled[/code] and have a [code]tooltip[/code].
+ 			</description>
+ 		</method>
+ 		<method name="call_recursive" qualifiers="vararg">
+diff --git a/scene/gui/tab_container.cpp b/scene/gui/tab_container.cpp
+index 6290d364fc6..c4e38a3e42f 100644
+--- a/scene/gui/tab_container.cpp
++++ b/scene/gui/tab_container.cpp
+@@ -990,7 +990,7 @@ void TabContainer::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("get_current_tab"), &TabContainer::get_current_tab);
+ 	ClassDB::bind_method(D_METHOD("get_previous_tab"), &TabContainer::get_previous_tab);
+ 	ClassDB::bind_method(D_METHOD("get_current_tab_control"), &TabContainer::get_current_tab_control);
+-	ClassDB::bind_method(D_METHOD("get_tab_control", "idx"), &TabContainer::get_tab_control);
++	ClassDB::bind_method(D_METHOD("get_tab_control", "tab_idx"), &TabContainer::get_tab_control);
+ 	ClassDB::bind_method(D_METHOD("set_tab_align", "align"), &TabContainer::set_tab_align);
+ 	ClassDB::bind_method(D_METHOD("get_tab_align"), &TabContainer::get_tab_align);
+ 	ClassDB::bind_method(D_METHOD("set_tabs_visible", "visible"), &TabContainer::set_tabs_visible);
+

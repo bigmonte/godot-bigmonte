@@ -6179,7 +6179,7 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 	settings_vbc->add_margin_child(TTR("View Z-Far:"), settings_zfar);
 
 	for (uint32_t i = 0; i < VIEWPORTS_COUNT; ++i) {
-		settings_dialog->connect("confirmed", callable_mp(viewports[i], &SpatialEditorViewport::_update_camera), varray(0.0));
+		settings_dialog->connect("confirmed", viewports[i], "_update_camera", varray(0.0));
 	}
 
 	/* XFORM DIALOG */
