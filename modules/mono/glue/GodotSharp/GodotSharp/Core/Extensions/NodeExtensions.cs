@@ -41,5 +41,11 @@ namespace Godot
         {
             return GetParent() as T;
         }
+
+        public void QueueFree(this Node node)
+        {
+            GD.Print("QUEU FREE");
+            node.QueueFree();
+        }
     }
 }
