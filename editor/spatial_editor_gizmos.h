@@ -390,11 +390,6 @@ class JointSpatialGizmoPlugin : public EditorSpatialGizmoPlugin {
 
 	GDCLASS(JointSpatialGizmoPlugin, EditorSpatialGizmoPlugin);
 
-	Timer *update_timer;
-	uint64_t update_idx = 0;
-
-	void incremental_update_gizmos();
-
 public:
 	bool has_gizmo(Spatial *p_spatial);
 	String get_name() const;
