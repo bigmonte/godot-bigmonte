@@ -2392,9 +2392,10 @@ void SpatialEditorViewport::_notification(int p_what) {
 			Transform t = sp->get_global_gizmo_transform();
 
 			exist = true;
-			if (se->last_xform == t)
+			if (se->last_xform == t && !se->last_xform_dirty)
 				continue;
 			changed = true;
+			se->last_xform_dirty = false;
 			se->last_xform = t;
 
 			VisualInstance *vi = Object::cast_to<VisualInstance>(sp);
@@ -6177,6 +6178,10 @@ SpatialEditor::SpatialEditor(EditorNode *p_editor) {
 	settings_zfar->set_step(0.01);
 	settings_zfar->set_value(EDITOR_DEF("editors/3d/default_z_far", 1500));
 	settings_vbc->add_margin_child(TTR("View Z-Far:"), settings_zfar);
+
+	for (uint32_t i = 0; i < VIEWPORTS_COUNT; ++i) {
+		settings_dialog->connect("confirmed", viewports[i], "_update_camera", varray(0.0));
+	}
 
 	/* XFORM DIALOG */
 

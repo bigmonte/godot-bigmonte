@@ -66,7 +66,7 @@ void ViewportTexture::setup_local_to_scene() {
 	}
 
 	Node *vpn = local_scene->get_node(path);
-	ERR_FAIL_COND_MSG(!vpn, "ViewportTexture: Path to node is invalid.");
+	ERR_FAIL_COND_MSG(!vpn, "ViewportTexture: Path to node is invalid. If the path seems valid, move the node using the texture after the viewport.");
 
 	vp = Object::cast_to<Viewport>(vpn);
 
@@ -88,7 +88,8 @@ void ViewportTexture::set_viewport_path_in_scene(const NodePath &p_path) {
 	path = p_path;
 
 	if (get_local_scene()) {
-		setup_local_to_scene();
+		//Refresh texture. Call deferred because node path could be invalid during instantiation
+		call_deferred("setup_local_to_scene"); 
 	}
 }
 
@@ -2980,12 +2981,14 @@ Control *Viewport::get_modal_stack_top() const {
 }
 
 String Viewport::get_configuration_warning() const {
-
 	/*if (get_parent() && !Object::cast_to<Control>(get_parent()) && !render_target) {
 
 		return TTR("This viewport is not set as render target. If you intend for it to display its contents directly to the screen, make it a child of a Control so it can obtain a size. Otherwise, make it a RenderTarget and assign its internal texture to some node for display.");
 	}*/
 
+	if (size.x == 0 || size.y == 0) {
+		return TTR("Viewport size must be greater than 0 to render anything.");
+	}
 	return String();
 }
 

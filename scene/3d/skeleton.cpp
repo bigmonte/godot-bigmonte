@@ -406,6 +406,12 @@ void Skeleton::set_bone_global_pose_override(int p_bone, const Transform &p_pose
 	_make_dirty();
 }
 
+void Skeleton::set_bone_global_pose(int p_bone, const Transform &p_pose) {
+
+	ERR_FAIL_INDEX(p_bone, bones.size());
+	set_bone_pose(p_bone, bones[p_bone].rest.affine_inverse() * (get_bone_global_pose(bones[p_bone].parent).affine_inverse() * p_pose));
+}
+
 Transform Skeleton::get_bone_global_pose(int p_bone) const {
 
 	ERR_FAIL_INDEX_V(p_bone, bones.size(), Transform());
@@ -908,6 +914,7 @@ void Skeleton::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_bone_pose", "bone_idx", "pose"), &Skeleton::set_bone_pose);
 
 	ClassDB::bind_method(D_METHOD("set_bone_global_pose_override", "bone_idx", "pose", "amount", "persistent"), &Skeleton::set_bone_global_pose_override, DEFVAL(false));
+	ClassDB::bind_method(D_METHOD("set_bone_global_pose", "bone_idx", "pose"), &Skeleton::set_bone_global_pose);
 	ClassDB::bind_method(D_METHOD("get_bone_global_pose", "bone_idx"), &Skeleton::get_bone_global_pose);
 
 	ClassDB::bind_method(D_METHOD("get_bone_custom_pose", "bone_idx"), &Skeleton::get_bone_custom_pose);

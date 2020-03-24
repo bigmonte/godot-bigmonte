@@ -15,7 +15,7 @@ def configure(env):
     env.use_ptrcall = True
     env.add_module_version_string('mono')
 
-    from SCons.Script import BoolVariable, PathVariable, Variables
+    from SCons.Script import BoolVariable, PathVariable, Variables, Help
 
     default_mono_static = platform in ['iphone', 'javascript']
     default_mono_bundles_zlib = platform in ['javascript']
@@ -31,6 +31,7 @@ def configure(env):
     envvars.Add(BoolVariable('mono_bundles_zlib', 'Specify if the Mono runtime was built with bundled zlib', default_mono_bundles_zlib))
 
     envvars.Update(env)
+    Help(envvars.GenerateHelpText(env))
 
     if env['mono_bundles_zlib']:
         # Mono may come with zlib bundled for WASM or on newer version when built with MinGW.

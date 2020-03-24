@@ -1416,6 +1416,9 @@ void AnimationTimelineEdit::_anim_length_changed(double p_new_len) {
 	if (editing)
 		return;
 
+	if (length->is_grabbing())
+		return;
+
 	p_new_len = MAX(0.001, p_new_len);
 	if (use_fps && animation->get_step() > 0) {
 		p_new_len *= animation->get_step();
@@ -3523,13 +3526,14 @@ void AnimationTrackEditor::_query_insert(const InsertData &p_id) {
 			}
 
 			if (num_tracks == 1)
-				insert_confirm_text->set_text(vformat(TTR("Create NEW track for %s and insert key?"), p_id.query));
+				insert_confirm_text->set_text(vformat(TTR("Create a new track for %s and insert a key?"), p_id.query));
 			else
-				insert_confirm_text->set_text(vformat(TTR("Create %d NEW tracks and insert keys?"), num_tracks));
+				insert_confirm_text->set_text(vformat(TTR("Create %d new tracks and insert keys?"), num_tracks));
 
 			insert_confirm_bezier->set_visible(all_bezier);
 			insert_confirm->get_ok()->set_text(TTR("Create"));
-			insert_confirm->popup_centered_minsize();
+			insert_confirm->set_size(Size2());
+			insert_confirm->popup_centered();
 			insert_query = true;
 		} else {
 			call_deferred("_insert_delay");

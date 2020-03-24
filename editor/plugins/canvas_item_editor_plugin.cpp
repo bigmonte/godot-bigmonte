@@ -53,8 +53,16 @@
 #include "scene/main/viewport.h"
 #include "scene/resources/packed_scene.h"
 
-#define MIN_ZOOM 0.01
-#define MAX_ZOOM 100
+// Min and Max are power of two in order to play nicely with successive increment.
+// That way, we can naturally reach a 100% zoom from boundaries.
+#define MIN_ZOOM 1. / 128
+#define MAX_ZOOM 128
+
+// Base increment factor defined as the twelveth root of two.
+// This allow a smooth geometric evolution of the zoom, with the advantage of
+// visiting all integer power of two scale factors.
+// note: this is analogous to the 'semitones' interval in the music world
+#define ZOOM_INCREMENT 0.0594630943592953 // 2**(1/12) - 1
 
 #define RULER_WIDTH (15 * EDSCALE)
 #define SCALE_HANDLE_DISTANCE 25
@@ -1196,7 +1204,8 @@ bool CanvasItemEditor::_gui_input_zoom_or_pan(const Ref<InputEvent> &p_event, bo
 				view_offset.y += int(EditorSettings::get_singleton()->get("editors/2d/pan_speed")) / zoom * b->get_factor();
 				update_viewport();
 			} else {
-				_zoom_on_position(zoom * (1 - (0.05 * b->get_factor())), b->get_position());
+				double zoom_factor = 1 + ZOOM_INCREMENT * b->get_factor();
+				_zoom_on_position(zoom / zoom_factor, b->get_position());
 			}
 			return true;
 		}
@@ -1207,7 +1216,8 @@ bool CanvasItemEditor::_gui_input_zoom_or_pan(const Ref<InputEvent> &p_event, bo
 				view_offset.y -= int(EditorSettings::get_singleton()->get("editors/2d/pan_speed")) / zoom * b->get_factor();
 				update_viewport();
 			} else {
-				_zoom_on_position(zoom * ((0.95 + (0.05 * b->get_factor())) / 0.95), b->get_position());
+				double zoom_factor = 1 + ZOOM_INCREMENT * b->get_factor();
+				_zoom_on_position(zoom * zoom_factor, b->get_position());
 			}
 			return true;
 		}
@@ -2348,8 +2358,11 @@ bool CanvasItemEditor::_gui_input_select(const Ref<InputEvent> &p_event) {
 
 bool CanvasItemEditor::_gui_input_ruler_tool(const Ref<InputEvent> &p_event) {
 
-	if (tool != TOOL_RULER)
+	if (tool != TOOL_RULER) {
+
+		ruler_tool_active = false;
 		return false;
+	}
 
 	Ref<InputEventMouseButton> b = p_event;
 	Ref<InputEventMouseMotion> m = p_event;
@@ -4223,15 +4236,26 @@ void CanvasItemEditor::_set_anchors_preset(Control::LayoutPreset p_preset) {
 }
 
 void CanvasItemEditor::_zoom_on_position(float p_zoom, Point2 p_position) {
-	if (p_zoom < MIN_ZOOM || p_zoom > MAX_ZOOM)
+	p_zoom = CLAMP(p_zoom, MIN_ZOOM, MAX_ZOOM);
+	if (p_zoom == zoom)
 		return;
 
 	float prev_zoom = zoom;
 	zoom = p_zoom;
-	Point2 ofs = p_position;
-	ofs = ofs / prev_zoom - ofs / zoom;
-	view_offset.x = Math::round(view_offset.x + ofs.x);
-	view_offset.y = Math::round(view_offset.y + ofs.y);
+
+	view_offset += p_position / prev_zoom - p_position / zoom;
+
+	// We want to align in-scene pixels to screen pixels, this prevents blurry rendering
+	// in small details (texts, lines).
+	// This correction adds a jitter movement when zooming, so we correct only when the
+	// zoom factor is an integer. (in the other cases, all pixels won't be aligned anyway)
+	float closest_zoom_factor = Math::round(zoom);
+	if (Math::is_zero_approx(zoom - closest_zoom_factor)) {
+		// make sure scene pixel at view_offset is aligned on a screen pixel
+		Vector2 view_offset_int = view_offset.floor();
+		Vector2 view_offset_frac = view_offset - view_offset_int;
+		view_offset = view_offset_int + (view_offset_frac * closest_zoom_factor).round() / closest_zoom_factor;
+	}
 
 	_update_zoom_label();
 	update_viewport();

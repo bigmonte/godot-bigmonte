@@ -4078,6 +4078,7 @@ JointSpatialGizmoPlugin::JointSpatialGizmoPlugin() {
 	create_material("joint_body_b_material", EDITOR_DEF("editors/3d_gizmos/gizmo_colors/joint_body_b", Color(0.6, 0.9, 1)));
 }
 
+
 bool JointSpatialGizmoPlugin::has_gizmo(Spatial *p_spatial) {
 	return Object::cast_to<Joint>(p_spatial) != NULL;
 }
