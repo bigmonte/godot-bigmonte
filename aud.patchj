@@ -1,0 +1,38 @@
+From ff1fbd2bc593a83a9b5c94e734a550377021efa0 Mon Sep 17 00:00:00 2001
+From: Waridley <waridley64@gmail.com>
+Date: Tue, 24 Mar 2020 20:06:26 -0500
+Subject: [PATCH] Fix volume interpolation in positional audio nodes
+
+Fixes #22016
+---
+ scene/2d/audio_stream_player_2d.cpp | 2 +-
+ scene/3d/audio_stream_player_3d.cpp | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/scene/2d/audio_stream_player_2d.cpp b/scene/2d/audio_stream_player_2d.cpp
+index aa4ed233fb2..3ef4dfe5f1d 100644
+--- a/scene/2d/audio_stream_player_2d.cpp
++++ b/scene/2d/audio_stream_player_2d.cpp
+@@ -87,7 +87,7 @@ void AudioStreamPlayer2D::_mix_audio() {
+ 		AudioFrame target_volume = stream_paused_fade_out ? AudioFrame(0.f, 0.f) : current.vol;
+ 		AudioFrame vol_prev = stream_paused_fade_in ? AudioFrame(0.f, 0.f) : prev_outputs[i].vol;
+ 		AudioFrame vol_inc = (target_volume - vol_prev) / float(buffer_size);
+-		AudioFrame vol = stream_paused_fade_in ? AudioFrame(0.f, 0.f) : current.vol;
++		AudioFrame vol = vol_prev;
+ 
+ 		int cc = AudioServer::get_singleton()->get_channel_count();
+ 
+diff --git a/scene/3d/audio_stream_player_3d.cpp b/scene/3d/audio_stream_player_3d.cpp
+index 855d254bd69..f0a61a905c3 100644
+--- a/scene/3d/audio_stream_player_3d.cpp
++++ b/scene/3d/audio_stream_player_3d.cpp
+@@ -213,7 +213,7 @@ void AudioStreamPlayer3D::_mix_audio() {
+ 			AudioFrame target_volume = stream_paused_fade_out ? AudioFrame(0.f, 0.f) : current.vol[k];
+ 			AudioFrame vol_prev = stream_paused_fade_in ? AudioFrame(0.f, 0.f) : prev_outputs[i].vol[k];
+ 			AudioFrame vol_inc = (target_volume - vol_prev) / float(buffer_size);
+-			AudioFrame vol = stream_paused_fade_in ? AudioFrame(0.f, 0.f) : current.vol[k];
++			AudioFrame vol = vol_prev;
+ 
+ 			if (!AudioServer::get_singleton()->thread_has_channel_mix_buffer(current.bus_index, k))
+ 				continue; //may have been deleted, will be updated on process
+

@@ -43,128 +43,147 @@
 template <class T>
 class RasterizerArray {
 public:
-	RasterizerArray() {
-		_list = 0;
-		_size = 0;
-		_max_size = 0;
-	}
-	~RasterizerArray() { free(); }
+    RasterizerArray() {
+        _list = 0;
+        _size = 0;
+        _max_size = 0;
+    }
+    ~RasterizerArray() { free(); }
 
-	T &operator[](unsigned int ui) { return _list[ui]; }
-	const T &operator[](unsigned int ui) const { return _list[ui]; }
+    T &operator[](unsigned int ui) { return _list[ui]; }
+    const T &operator[](unsigned int ui) const { return _list[ui]; }
 
-	void free() {
-		if (_list) {
-			memdelete_arr(_list);
-			_list = 0;
-		}
-		_size = 0;
-		_max_size = 0;
-	}
+    void free() {
+        if (_list) {
+            memdelete_arr(_list);
+            _list = 0;
+        }
+        _size = 0;
+        _max_size = 0;
+    }
 
-	void create(int p_size) {
-		free();
-		_list = memnew_arr(T, p_size);
-		_size = 0;
-		_max_size = p_size;
-	}
+    void create(int p_size) {
+        free();
+        if (p_size) {
+            _list = memnew_arr(T, p_size);
+        }
+        _size = 0;
+        _max_size = p_size;
+    }
 
-	void reset() { _size = 0; }
+    void reset() { _size = 0; }
 
-	// none of that inefficient pass by value stuff here, thanks
-	T *request() {
-		if (_size < _max_size) {
-			return &_list[_size++];
-		}
-		return 0;
-	}
+    T *request_with_grow() {
+        T *p = request();
+        if (!p) {
+            grow();
+            return request_with_grow();
+        }
+        return p;
+    }
 
-	// four verts at a time
-	T *request_four() {
-		int old_size = _size;
-		_size += 4;
+    // none of that inefficient pass by value stuff here, thanks
+    T *request() {
+        if (_size < _max_size) {
+            return &_list[_size++];
+        }
+        return 0;
+    }
 
-		if (_size <= _max_size) {
-			return &_list[old_size];
-		}
+    // four verts at a time
+    T *request_four() {
+        int old_size = _size;
+        _size += 4;
 
-		// revert
-		_size = old_size;
-		return 0;
-	}
+        if (_size <= _max_size) {
+            return &_list[old_size];
+        }
 
-	int size() const { return _size; }
-	int max_size() const { return _max_size; }
-	const T *get_data() const { return _list; }
+        // revert
+        _size = old_size;
+        return 0;
+    }
 
-	bool copy_from(const RasterizerArray<T> &o) {
-		// no resizing done here, it should be done manually
-		if (o.size() > _max_size)
-			return false;
+    int size() const { return _size; }
+    int max_size() const { return _max_size; }
+    const T *get_data() const { return _list; }
 
-		// pod types only please!
-		memcpy(_list, o.get_data(), o.size() * sizeof(T));
-		_size = o.size();
-		return true;
-	}
+    bool copy_from(const RasterizerArray<T> &o) {
+        // no resizing done here, it should be done manually
+        if (o.size() > _max_size)
+            return false;
 
-	// if you want this to be cheap, call reset before grow,
-	// to ensure there is no data to copy
-	void grow() {
-		unsigned int new_max_size = _max_size * 2;
-		T *new_list = memnew_arr(T, new_max_size);
+        // pod types only please!
+        memcpy(_list, o.get_data(), o.size() * sizeof(T));
+        _size = o.size();
+        return true;
+    }
 
-		// copy .. pod types only
-		memcpy(new_list, _list, _size * sizeof(T));
+    // if you want this to be cheap, call reset before grow,
+    // to ensure there is no data to copy
+    void grow() {
+        unsigned int new_max_size = _max_size * 2;
+        if (!new_max_size)
+            new_max_size = 1;
 
-		unsigned int new_size = size();
-		free();
-		_list = new_list;
-		_size = new_size;
-		_max_size = new_max_size;
-	}
+        T *new_list = memnew_arr(T, new_max_size);
+
+        // copy .. pod types only
+        if (_list) {
+            memcpy(new_list, _list, _size * sizeof(T));
+        }
+
+        unsigned int new_size = size();
+        free();
+        _list = new_list;
+        _size = new_size;
+        _max_size = new_max_size;
+    }
 
 private:
-	T *_list;
-	int _size;
-	int _max_size;
+    T *_list;
+    int _size;
+    int _max_size;
 };
 
 template <class T>
 class RasterizerArray_non_pod {
 public:
-	RasterizerArray_non_pod() {
-		_size = 0;
-	}
+    RasterizerArray_non_pod() {
+        _size = 0;
+    }
 
-	const T &operator[](unsigned int ui) const { return _list[ui]; }
+    const T &operator[](unsigned int ui) const { return _list[ui]; }
 
-	void create(int p_size) {
-		_list.resize(p_size);
-		_size = 0;
-	}
-	void reset() { _size = 0; }
+    void create(int p_size) {
+        _list.resize(p_size);
+        _size = 0;
+    }
+    void reset() { _size = 0; }
 
-	void push_back(const T &val) {
-		while (true) {
-			if (_size < max_size()) {
-				_list.set(_size, val);
-				_size++;
-				return;
-			}
+    void push_back(const T &val) {
+        while (true) {
+            if (_size < max_size()) {
+                _list.set(_size, val);
+                _size++;
+                return;
+            }
 
-			grow();
-		}
-	}
+            grow();
+        }
+    }
 
-	int size() const { return _size; }
-	int max_size() const { return _list.size(); }
+    int size() const { return _size; }
+    int max_size() const { return _list.size(); }
 
 private:
-	void grow() {
-		_list.resize(_list.size() * 2);
-	}
+    void grow() {
+        unsigned int new_max_size = _list.size() * 2;
+        if (!new_max_size)
+            new_max_size = 1;
+        _list.resize(new_max_size);
+    }
 
-	Vector<T> _list;
-	int _size;
+    Vector<T> _list;
+    int _size;
 };
